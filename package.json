@@ -1,6 +1,6 @@
 {
   "name": "nys-lottery",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "App to NYS Lottery",
   "license": "ISC",
   "author": "Judson M. Fitzpatrick, Irish_Coder Programming",
@@ -9,9 +9,12 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "version:bump": "node scripts/bump-version.js patch",
+    "version:bump:minor": "node scripts/bump-version.js minor",
+    "version:bump:major": "node scripts/bump-version.js major",
     "sync-version": "node scripts/sync-version-json.js",
     "dist": "electron-builder --win nsis",
-    "release": "npm run sync-version && electron-builder --win nsis --publish always",
+    "release": "npm run version:bump && electron-builder --win nsis --publish always",
     "build": "electron-packager . nys-lottery --platform=win32 --arch=x64 --out=dist/",
     "build-all": "electron-packager . nys-lottery --all --out=dist/",
     "build-win": "electron-packager . nys-lottery --platform=win32 --arch=x64 --out=dist/ --overwrite",
