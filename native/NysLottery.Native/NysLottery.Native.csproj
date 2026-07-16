@@ -12,4 +12,10 @@
     <AssemblyName>NysLottery.Native</AssemblyName>
     <RootNamespace>NysLottery.Native</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\Irish_Coders_Programming Logo\Irish_Coders_Programming.png" Link="Irish_Coders_Programming.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

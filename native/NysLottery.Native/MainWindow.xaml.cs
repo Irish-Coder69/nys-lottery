@@ -51,18 +51,101 @@ public partial class MainWindow : Window
 
     private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        var aboutText =
-            "NYS Lottery Native\n\n" +
-            $"Version: {GetCurrentVersion()}\n" +
-            "Created by Judson M. Fitzpatrick\n" +
-            "Irish_Coders_Programming\n" +
-            "Copyright © 2026 Irish_Coders_Programming. All rights reserved.";
+        var aboutWindow = new Window
+        {
+            Title = "About",
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            MinWidth = 420,
+            Content = BuildAboutContent()
+        };
 
-        MessageBox.Show(
-            aboutText,
-            "About",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        aboutWindow.ShowDialog();
+    }
+
+    private UIElement BuildAboutContent()
+    {
+        var panel = new StackPanel
+        {
+            Margin = new Thickness(24),
+            Orientation = Orientation.Vertical
+        };
+
+        var logoPath = FindBrandingLogoPath();
+        if (!string.IsNullOrWhiteSpace(logoPath))
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.UriSource = new Uri(logoPath, UriKind.Absolute);
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.EndInit();
+
+            panel.Children.Add(new Image
+            {
+                Source = image,
+                Width = 96,
+                Height = 96,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 12)
+            });
+        }
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "NYS Lottery Native",
+            FontSize = 20,
+            FontWeight = FontWeights.SemiBold,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        });
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"Version: {GetCurrentVersion()}",
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 4)
+        });
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Created by Judson M. Fitzpatrick",
+            TextAlignment = TextAlignment.Center
+        });
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Irish_Coders_Programming",
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 8)
+        });
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Copyright © 2026 Irish_Coders_Programming. All rights reserved.",
+            TextAlignment = TextAlignment.Center,
+            Opacity = 0.8,
+            Margin = new Thickness(0, 0, 0, 16)
+        });
+
+        var okButton = new Button
+        {
+            Content = "OK",
+            Width = 96,
+            Height = 32,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            IsDefault = true,
+            IsCancel = true
+        };
+        okButton.Click += (_, _) =>
+        {
+            var parent = Window.GetWindow(okButton);
+            parent?.Close();
+        };
+
+        panel.Children.Add(okButton);
+        return panel;
     }
 
     private void Generate_Click(object sender, RoutedEventArgs e)
@@ -342,17 +425,7 @@ public partial class MainWindow : Window
 
     private void LoadBrandingLogo()
     {
-        var candidates = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming.png"),
-            Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png"),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png")),
-            Path.Combine(AppContext.BaseDirectory, "New_York_Lottery.svg.ico"),
-            Path.Combine(AppContext.BaseDirectory, "Icon", "New_York_Lottery.svg.ico"),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Icon", "New_York_Lottery.svg.ico"))
-        };
-
-        var logoPath = candidates.FirstOrDefault(File.Exists);
+        var logoPath = FindBrandingLogoPath();
         if (string.IsNullOrWhiteSpace(logoPath))
         {
             return;
@@ -364,6 +437,21 @@ public partial class MainWindow : Window
         image.CacheOption = BitmapCacheOption.OnLoad;
         image.EndInit();
         BrandingLogoImage.Source = image;
+    }
+
+    private static string? FindBrandingLogoPath()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming.png"),
+            Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png"),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png")),
+            Path.Combine(AppContext.BaseDirectory, "New_York_Lottery.svg.ico"),
+            Path.Combine(AppContext.BaseDirectory, "Icon", "New_York_Lottery.svg.ico"),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Icon", "New_York_Lottery.svg.ico"))
+        };
+
+        return candidates.FirstOrDefault(File.Exists);
     }
 
     private static string GetCurrentVersion()
