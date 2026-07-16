@@ -8,10 +8,21 @@ public sealed class LotteryGeneratorService
 
     public IReadOnlyList<int> GenerateMainNumbers(GameDefinition game)
     {
+        if (game.AllowRepeats)
+        {
+            var repeated = new List<int>(game.PickCount);
+            for (var i = 0; i < game.PickCount; i++)
+            {
+                repeated.Add(_random.Next(game.MinNumber, game.MaxNumber + 1));
+            }
+
+            return repeated;
+        }
+
         var set = new SortedSet<int>();
         while (set.Count < game.PickCount)
         {
-            set.Add(_random.Next(1, game.MaxNumber + 1));
+            set.Add(_random.Next(game.MinNumber, game.MaxNumber + 1));
         }
 
         return set.ToList();

@@ -24,9 +24,13 @@ public partial class MainWindow : Window
     [
         new() { Name = "Powerball", PickCount = 5, MaxNumber = 69, DatasetId = "d6yy-54nr", PrizeName = "Jackpot", EstimatedPrize = "$478 Million", HasBonusBall = true, BonusBallMax = 26 },
         new() { Name = "Mega Millions", PickCount = 5, MaxNumber = 70, DatasetId = "5xaw-6ayf", PrizeName = "Jackpot", EstimatedPrize = "$843 Million", HasBonusBall = true, BonusBallMax = 25 },
+        new() { Name = "Millionaire For Life", PickCount = 5, MaxNumber = 60, DatasetId = "a4w9-a3tp", PrizeName = "Top Prize", EstimatedPrize = "$1,000 a Day for Life", HasBonusBall = true, BonusBallMax = 5, WinningFields = ["winning_numbers"] },
         new() { Name = "Lotto", PickCount = 6, MaxNumber = 59, DatasetId = "6nbc-h7bj", PrizeName = "Jackpot", EstimatedPrize = "$8.2 Million" },
         new() { Name = "Take 5", PickCount = 5, MaxNumber = 39, DatasetId = "dg63-4siq", PrizeName = "Top Prize", EstimatedPrize = "$57,575" },
-        new() { Name = "Pick 10", PickCount = 10, MaxNumber = 80, DatasetId = "bycu-cw7c", PrizeName = "Top Prize", EstimatedPrize = "$500,000" }
+        new() { Name = "Pick 10", PickCount = 10, MaxNumber = 80, DatasetId = "bycu-cw7c", PrizeName = "Top Prize", EstimatedPrize = "$500,000" },
+        new() { Name = "Quick Draw", PickCount = 10, MaxNumber = 80, DatasetId = "7sqk-ycpk", PrizeName = "Top Prize", EstimatedPrize = "$100,000", WinningFields = ["winning_numbers"] },
+        new() { Name = "Numbers", PickCount = 3, MinNumber = 0, MaxNumber = 9, AllowRepeats = true, DatasetId = "hsys-3def", PrizeName = "Top Prize", EstimatedPrize = "$500", WinningFields = ["midday_daily", "evening_daily"] },
+        new() { Name = "Win 4", PickCount = 4, MinNumber = 0, MaxNumber = 9, AllowRepeats = true, DatasetId = "hsys-3def", PrizeName = "Top Prize", EstimatedPrize = "$5,000", WinningFields = ["midday_win_4", "evening_win_4"] }
     ];
 
     public MainWindow()
@@ -301,7 +305,7 @@ public partial class MainWindow : Window
                     ? drawDate.GetString()?.Split('T')[0]
                     : "Unknown date";
 
-                var numbers = ExtractNumbers(row);
+                var numbers = ExtractNumbers(row, game);
                 var extra = ExtractExtra(row);
                 var line = numbers.Count > 0 ? string.Join(" - ", numbers) : "No numbers found";
                 if (!string.IsNullOrWhiteSpace(extra))
@@ -338,8 +342,25 @@ public partial class MainWindow : Window
         }
     }
 
-    private static List<int> ExtractNumbers(JsonElement row)
+    private static List<int> ExtractNumbers(JsonElement row, GameDefinition game)
     {
+        if (game.WinningFields is { Length: > 0 })
+        {
+            var configured = new List<int>();
+            foreach (var field in game.WinningFields)
+            {
+                if (row.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.String)
+                {
+                    configured.AddRange(Regex.Matches(value.GetString() ?? string.Empty, "\\d+").Select(m => int.Parse(m.Value)));
+                }
+            }
+
+            if (configured.Count > 0)
+            {
+                return configured;
+            }
+        }
+
         if (row.TryGetProperty("winning_numbers", out var winNums) && winNums.ValueKind == JsonValueKind.String)
         {
             return Regex.Matches(winNums.GetString() ?? string.Empty, "\\d+")
@@ -378,7 +399,7 @@ public partial class MainWindow : Window
 
     private static string? ExtractExtra(JsonElement row)
     {
-        var extras = new[] { "mega_ball", "powerball", "cash_ball", "bonus", "bonus_ball" };
+        var extras = new[] { "mega_ball", "powerball", "cash_ball", "bonus", "bonus_ball", "mill_ball", "extra_multiplier", "money_dots_winning_number" };
         foreach (var extra in extras)
         {
             if (row.TryGetProperty(extra, out var value) && value.ValueKind == JsonValueKind.String)

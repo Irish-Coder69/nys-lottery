@@ -1,5 +1,5 @@
 #define MyAppName "NYS Lottery Native"
-#define MyAppVersion "1.0.8"
+#define MyAppVersion "1.0.9"
 #define MyAppPublisher "Irish_Coder Programming"
 #define MyAppExeName "NysLottery.Native.exe"
 
