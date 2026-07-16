@@ -11,107 +11,82 @@
                 <MenuItem Header="Exit" Click="ExitMenuItem_Click" />
             </MenuItem>
             <MenuItem Header="Help">
-                <MenuItem Header="About" Click="AboutMenuItem_Click" />
+                <MenuItem Header="Check for Updates" Click="CheckUpdates_Click" />
+                <Separator />
+                <MenuItem x:Name="AboutMenuItem" Header="About" Click="AboutMenuItem_Click" />
             </MenuItem>
         </Menu>
 
-        <TabControl x:Name="MainTabControl" Margin="12">
-            <TabItem Header="Dashboard">
-                <Grid Margin="8">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="Game:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" />
+                    <ComboBox x:Name="GameComboBox" Width="240" Margin="0,0,16,0" DisplayMemberPath="Name" SelectionChanged="GameComboBox_SelectionChanged" />
+
+                    <TextBlock Text="Picks:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" />
+                    <TextBox x:Name="PickCountTextBox" Width="80" Text="5" Margin="0,0,16,0" />
+
+                    <Button Content="Generate" Width="120" Click="Generate_Click" Margin="0,0,8,0" />
+                    <Button Content="Refresh Results" Width="130" Click="RefreshResults_Click" Margin="0,0,8,0" />
+                </StackPanel>
+
+                <Image x:Name="BrandingLogoImage" Grid.Column="1" Width="56" Height="56" Margin="12,0,0,0" />
+            </Grid>
+
+            <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                <TextBlock x:Name="StatusText" Text="Ready." Foreground="#555" />
+                <ProgressBar x:Name="UpdateProgressBar" Height="12" Minimum="0" Maximum="100" Margin="0,6,0,0" Visibility="Collapsed" />
+                <TextBlock x:Name="UpdateProgressText" Foreground="#555" Margin="0,4,0,0" Visibility="Collapsed" />
+            </StackPanel>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="3*" />
+                </Grid.ColumnDefinitions>
+
+                <GroupBox Header="Generated Picks" Margin="0,0,12,0">
+                    <ListBox x:Name="ResultsListBox" />
+                </GroupBox>
+
+                <Grid Grid.Column="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="2*" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="Game:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" />
-                        <ComboBox x:Name="GameComboBox" Width="240" Margin="0,0,16,0" DisplayMemberPath="Name" SelectionChanged="GameComboBox_SelectionChanged" />
-
-                        <TextBlock Text="Picks:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" />
-                        <TextBox x:Name="PickCountTextBox" Width="80" Text="5" Margin="0,0,16,0" />
-
-                        <Button Content="Generate" Width="120" Click="Generate_Click" Margin="0,0,8,0" />
-                        <Button Content="Refresh Results" Width="130" Click="RefreshResults_Click" Margin="0,0,8,0" />
-                    </StackPanel>
-
-                    <TextBlock x:Name="StatusText" Grid.Row="1" Text="Ready." Margin="0,0,0,12" Foreground="#555" />
-
-                    <Grid Grid.Row="2">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*" />
-                            <ColumnDefinition Width="3*" />
-                        </Grid.ColumnDefinitions>
-
-                        <GroupBox Header="Generated Picks" Margin="0,0,12,0">
-                            <ListBox x:Name="ResultsListBox" />
-                        </GroupBox>
-
-                        <Grid Grid.Column="1">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="2*" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <GroupBox Header="Current Prize" Margin="0,0,0,12">
-                                <StackPanel Margin="8">
-                                    <TextBlock x:Name="PrizeLabelText" FontWeight="Bold" Text="Jackpot" />
-                                    <TextBlock x:Name="CurrentPrizeText" FontSize="20" FontWeight="SemiBold" Text="$0" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </GroupBox>
-
-                            <GroupBox Header="Past Winning Numbers" Grid.Row="1" Margin="0,0,0,12">
-                                <ListBox x:Name="WinningNumbersListBox" />
-                            </GroupBox>
-
-                            <GroupBox Header="Generated Pick History" Grid.Row="2">
-                                <TextBox x:Name="HistoryTextBox"
-                                         IsReadOnly="True"
-                                         VerticalScrollBarVisibility="Auto"
-                                         TextWrapping="Wrap"
-                                         AcceptsReturn="True" />
-                            </GroupBox>
-                        </Grid>
-                    </Grid>
-                </Grid>
-            </TabItem>
-
-            <TabItem x:Name="AboutTabItem" Header="About">
-                <Grid Margin="12">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Image x:Name="AboutLogoImage" Width="96" Height="96" Margin="0,0,16,0" />
-                        <StackPanel>
-                            <TextBlock Text="NYS Lottery Native" FontSize="24" FontWeight="SemiBold" />
-                            <TextBlock Text="Created by Judson M. Fitzpatrick" FontSize="14" Margin="0,8,0,0" />
-                            <TextBlock Text="Irish_Coders_Programming" FontSize="14" />
-                            <TextBlock Text="Copyright © 2026 Irish_Coders_Programming. All rights reserved." FontSize="13" Margin="0,8,0,0" />
+                    <GroupBox Header="Current Prize" Margin="0,0,0,12">
+                        <StackPanel Margin="8">
+                            <TextBlock x:Name="PrizeLabelText" FontWeight="Bold" Text="Jackpot" />
+                            <TextBlock x:Name="CurrentPrizeText" FontSize="20" FontWeight="SemiBold" Text="$0" Margin="0,4,0,0" />
                         </StackPanel>
-                    </StackPanel>
+                    </GroupBox>
 
-                    <TextBlock Grid.Row="1"
-                               Text="Professional NYS lottery desktop application with real winning history and current prize checks."
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,12" />
+                    <GroupBox Header="Past Winning Numbers" Grid.Row="1" Margin="0,0,0,12">
+                        <ListBox x:Name="WinningNumbersListBox" />
+                    </GroupBox>
 
-                    <TextBlock Grid.Row="2"
-                               Text="Use 'Check for Updates' to verify if a newer release is available from GitHub."
-                               VerticalAlignment="Top"
-                               Foreground="#555" />
-
-                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,12,0,0">
-                        <Button Content="Check for Updates" Width="150" Click="CheckUpdates_Click" Margin="0,0,8,0" />
-                        <Button Content="Close Program" Width="120" Click="ExitMenuItem_Click" />
-                    </StackPanel>
+                    <GroupBox Header="Generated Pick History" Grid.Row="2">
+                        <TextBox x:Name="HistoryTextBox"
+                                 IsReadOnly="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True" />
+                    </GroupBox>
                 </Grid>
-            </TabItem>
-        </TabControl>
+            </Grid>
+        </Grid>
     </DockPanel>
 </Window>

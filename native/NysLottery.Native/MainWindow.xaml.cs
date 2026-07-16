@@ -38,7 +38,8 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        LoadAboutLogo();
+        LoadBrandingLogo();
+        AboutMenuItem.Header = $"About (v{GetCurrentVersion()})";
         await RefreshExternalDataAsync();
         _ = CheckForAndInstallUpdateAsync(showUpToDateMessage: false);
     }
@@ -50,7 +51,18 @@ public partial class MainWindow : Window
 
     private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        MainTabControl.SelectedItem = AboutTabItem;
+        var aboutText =
+            "NYS Lottery Native\n\n" +
+            $"Version: {GetCurrentVersion()}\n" +
+            "Created by Judson M. Fitzpatrick\n" +
+            "Irish_Coders_Programming\n" +
+            "Copyright © 2026 Irish_Coders_Programming. All rights reserved.";
+
+        MessageBox.Show(
+            aboutText,
+            "About",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     private void Generate_Click(object sender, RoutedEventArgs e)
@@ -100,15 +112,17 @@ public partial class MainWindow : Window
     {
         try
         {
+            ShowUpdateProgress("Checking for updates...");
             StatusText.Text = "Checking for updates...";
             var release = await GetLatestReleaseAsync();
             if (release is null || string.IsNullOrWhiteSpace(release.TagName))
             {
                 StatusText.Text = "Could not check updates right now.";
+                HideUpdateProgress();
                 return;
             }
 
-            var currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
+            var currentVersion = GetCurrentVersion();
             var latestVersion = release.TagName.TrimStart('v', 'V');
 
             if (CompareVersionStrings(latestVersion, currentVersion) <= 0)
@@ -118,33 +132,39 @@ public partial class MainWindow : Window
                     StatusText.Text = "You are up to date.";
                 }
 
+                HideUpdateProgress();
+
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(release.InstallerDownloadUrl))
             {
                 StatusText.Text = $"Update {latestVersion} found, but installer asset is missing.";
+                HideUpdateProgress();
                 return;
             }
 
             StatusText.Text = $"Update {latestVersion} found. Downloading installer...";
-            var installerPath = await DownloadInstallerAsync(release.InstallerDownloadUrl, latestVersion);
-            StatusText.Text = "Installing update...";
+            var installerPath = await DownloadInstallerWithProgressAsync(release.InstallerDownloadUrl, latestVersion);
+            StatusText.Text = "Download complete. Starting installer...";
+            ShowUpdateProgress("Launching installer...");
 
             var startInfo = new ProcessStartInfo
             {
                 FileName = installerPath,
-                Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
+                Arguments = "/NORESTART /SP-",
                 UseShellExecute = true,
                 Verb = "runas"
             };
 
             Process.Start(startInfo);
+            StatusText.Text = "Installer launched. Follow installer steps to complete update.";
             Application.Current.Shutdown();
         }
         catch (Exception ex)
         {
             StatusText.Text = "Update failed. Please try again.";
+            HideUpdateProgress();
             Console.WriteLine(ex.Message);
         }
     }
@@ -320,10 +340,13 @@ public partial class MainWindow : Window
         return "$" + match.Groups[1].Value.Trim();
     }
 
-    private void LoadAboutLogo()
+    private void LoadBrandingLogo()
     {
         var candidates = new[]
         {
+            Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming.png"),
+            Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png"),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png")),
             Path.Combine(AppContext.BaseDirectory, "New_York_Lottery.svg.ico"),
             Path.Combine(AppContext.BaseDirectory, "Icon", "New_York_Lottery.svg.ico"),
             Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Icon", "New_York_Lottery.svg.ico"))
@@ -340,7 +363,18 @@ public partial class MainWindow : Window
         image.UriSource = new Uri(logoPath, UriKind.Absolute);
         image.CacheOption = BitmapCacheOption.OnLoad;
         image.EndInit();
-        AboutLogoImage.Source = image;
+        BrandingLogoImage.Source = image;
+    }
+
+    private static string GetCurrentVersion()
+    {
+        var raw = Assembly.GetExecutingAssembly().GetName().Version;
+        if (raw is null)
+        {
+            return "1.0.0";
+        }
+
+        return $"{raw.Major}.{raw.Minor}.{Math.Max(0, raw.Build)}";
     }
 
     private static int CompareVersionStrings(string a, string b)
@@ -367,18 +401,78 @@ public partial class MainWindow : Window
         return 0;
     }
 
-    private static async Task<string> DownloadInstallerAsync(string url, string version)
+    private async Task<string> DownloadInstallerWithProgressAsync(string url, string version)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("User-Agent", "NysLotteryNativeUpdater");
 
-        using var response = await Http.SendAsync(request);
+        using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
+        var totalBytes = response.Content.Headers.ContentLength;
         var tempFile = Path.Combine(Path.GetTempPath(), $"NysLottery-Native-Setup-{version}.exe");
+
+        await using var input = await response.Content.ReadAsStreamAsync();
         await using var fs = File.Create(tempFile);
-        await response.Content.CopyToAsync(fs);
+
+        var buffer = new byte[81920];
+        long downloaded = 0;
+        while (true)
+        {
+            var read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length));
+            if (read == 0)
+            {
+                break;
+            }
+
+            await fs.WriteAsync(buffer.AsMemory(0, read));
+            downloaded += read;
+
+            if (totalBytes.HasValue && totalBytes.Value > 0)
+            {
+                var percent = (int)Math.Round(downloaded * 100d / totalBytes.Value);
+                ShowUpdateProgress($"Downloading update... {percent}%", percent);
+            }
+            else
+            {
+                ShowUpdateProgress($"Downloading update... {downloaded / 1024 / 1024} MB");
+            }
+        }
+
+        ShowUpdateProgress("Download complete. Preparing installer...", 100);
         return tempFile;
+    }
+
+    private void ShowUpdateProgress(string message, int? percent = null)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            UpdateProgressBar.Visibility = Visibility.Visible;
+            UpdateProgressText.Visibility = Visibility.Visible;
+            UpdateProgressText.Text = message;
+
+            if (percent.HasValue)
+            {
+                UpdateProgressBar.IsIndeterminate = false;
+                UpdateProgressBar.Value = Math.Max(0, Math.Min(100, percent.Value));
+            }
+            else
+            {
+                UpdateProgressBar.IsIndeterminate = true;
+            }
+        });
+    }
+
+    private void HideUpdateProgress()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            UpdateProgressBar.IsIndeterminate = false;
+            UpdateProgressBar.Value = 0;
+            UpdateProgressBar.Visibility = Visibility.Collapsed;
+            UpdateProgressText.Visibility = Visibility.Collapsed;
+            UpdateProgressText.Text = string.Empty;
+        });
     }
 
     private static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync()
