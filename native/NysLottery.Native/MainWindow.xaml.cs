@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using NysLottery.Native.Models;
 using NysLottery.Native.Services;
 
@@ -195,13 +196,13 @@ public partial class MainWindow : Window
     {
         try
         {
-            ShowUpdateProgress("Checking for updates...");
+            await ShowUpdateProgressAsync("Checking for updates...");
             StatusText.Text = "Checking for updates...";
             var release = await GetLatestReleaseAsync();
             if (release is null || string.IsNullOrWhiteSpace(release.TagName))
             {
                 StatusText.Text = "Could not check updates right now.";
-                HideUpdateProgress();
+                await HideUpdateProgressAsync();
                 return;
             }
 
@@ -215,7 +216,7 @@ public partial class MainWindow : Window
                     StatusText.Text = "You are up to date.";
                 }
 
-                HideUpdateProgress();
+                await HideUpdateProgressAsync();
 
                 return;
             }
@@ -223,14 +224,14 @@ public partial class MainWindow : Window
             if (string.IsNullOrWhiteSpace(release.InstallerDownloadUrl))
             {
                 StatusText.Text = $"Update {latestVersion} found, but installer asset is missing.";
-                HideUpdateProgress();
+                await HideUpdateProgressAsync();
                 return;
             }
 
             StatusText.Text = $"Update {latestVersion} found. Downloading installer...";
             var installerPath = await DownloadInstallerWithProgressAsync(release.InstallerDownloadUrl, latestVersion);
             StatusText.Text = "Download complete. Starting installer...";
-            ShowUpdateProgress("Launching installer...");
+            await ShowUpdateProgressAsync("Launching installer...");
 
             var startInfo = new ProcessStartInfo
             {
@@ -247,7 +248,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StatusText.Text = "Update failed. Please try again.";
-            HideUpdateProgress();
+            await HideUpdateProgressAsync();
             Console.WriteLine(ex.Message);
         }
     }
@@ -519,25 +520,26 @@ public partial class MainWindow : Window
             if (totalBytes.HasValue && totalBytes.Value > 0)
             {
                 var percent = (int)Math.Round(downloaded * 100d / totalBytes.Value);
-                ShowUpdateProgress($"Downloading update... {percent}%", percent);
+                await ShowUpdateProgressAsync($"Downloading update... {percent}%", percent);
             }
             else
             {
-                ShowUpdateProgress($"Downloading update... {downloaded / 1024 / 1024} MB");
+                await ShowUpdateProgressAsync($"Downloading update... {downloaded / 1024 / 1024} MB");
             }
         }
 
-        ShowUpdateProgress("Download complete. Preparing installer...", 100);
+        await ShowUpdateProgressAsync("Download complete. Preparing installer...", 100);
         return tempFile;
     }
 
-    private void ShowUpdateProgress(string message, int? percent = null)
+    private async Task ShowUpdateProgressAsync(string message, int? percent = null)
     {
-        Dispatcher.Invoke(() =>
+        await Dispatcher.InvokeAsync(() =>
         {
             UpdateProgressBar.Visibility = Visibility.Visible;
             UpdateProgressText.Visibility = Visibility.Visible;
             UpdateProgressText.Text = message;
+            StatusText.Text = message;
 
             if (percent.HasValue)
             {
@@ -548,19 +550,19 @@ public partial class MainWindow : Window
             {
                 UpdateProgressBar.IsIndeterminate = true;
             }
-        });
+        }, DispatcherPriority.Render);
     }
 
-    private void HideUpdateProgress()
+    private async Task HideUpdateProgressAsync()
     {
-        Dispatcher.Invoke(() =>
+        await Dispatcher.InvokeAsync(() =>
         {
             UpdateProgressBar.IsIndeterminate = false;
             UpdateProgressBar.Value = 0;
             UpdateProgressBar.Visibility = Visibility.Collapsed;
             UpdateProgressText.Visibility = Visibility.Collapsed;
             UpdateProgressText.Text = string.Empty;
-        });
+        }, DispatcherPriority.Render);
     }
 
     private static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync()

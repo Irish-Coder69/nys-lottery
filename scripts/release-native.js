@@ -78,18 +78,13 @@ function getCurrentBranch() {
   return 'master';
 }
 
-function commitVersionFiles(version) {
-  run('git', [
-    'add',
-    'package.json',
-    'version.json',
-    'native/NysLottery.Native/NysLottery.Native.csproj',
-    'native/installer/NysLotteryNative.iss'
-  ]);
+function commitReleaseFiles(version) {
+  // Include all pending workspace changes so every release is fully reproducible from one commit.
+  run('git', ['add', '-A']);
 
   const status = runCapture('git', ['diff', '--cached', '--name-only']);
   if (status.status !== 0 || !status.stdout) {
-    console.log('No version file changes to commit.');
+    console.log('No changes to commit for this release.');
     return;
   }
 
@@ -127,17 +122,21 @@ function main() {
   run(process.execPath, [bumpScript, level]);
 
   let version = getVersion();
-  while (runCapture('gh', ['release', 'view', `v${version}`]).status === 0) {
-    // Guarantee every execution maps to a brand-new release tag.
-    run(process.execPath, [bumpScript, 'patch']);
-    version = getVersion();
+  if (!dryRun) {
+    while (runCapture('gh', ['release', 'view', `v${version}`]).status === 0) {
+      // Guarantee every execution maps to a brand-new release tag.
+      run(process.execPath, [bumpScript, 'patch']);
+      version = getVersion();
+    }
+  } else {
+    console.log(`DRY RUN: skipping unique-tag bump loop for v${version}.`);
   }
 
   const branch = getCurrentBranch();
   const installerFileName = `NysLottery-Native-Setup-${version}.exe`;
   const installerPath = path.join('native', 'installer-output', installerFileName);
 
-  commitVersionFiles(version);
+  commitReleaseFiles(version);
 
   run('dotnet', [
     'publish',
