@@ -1,0 +1,62 @@
+{
+  "name": "nys-lottery",
+  "version": "1.0.0",
+  "description": "App to NYS Lottery",
+  "license": "ISC",
+  "author": "Judson M. Fitzpatrick, Irish_Coder Programming",
+  "type": "commonjs",
+  "productionName": "NYS Lottery App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "release": "electron-builder --win nsis --publish always",
+    "build": "electron-packager . nys-lottery --platform=win32 --arch=x64 --out=dist/",
+    "build-all": "electron-packager . nys-lottery --all --out=dist/",
+    "build-win": "electron-packager . nys-lottery --platform=win32 --arch=x64 --out=dist/ --overwrite",
+    "build-mac": "electron-packager . nys-lottery --platform=darwin --arch=x64 --out=dist/ --overwrite",
+    "build-linux": "electron-packager . nys-lottery --platform=linux --arch=x64 --out=dist/ --overwrite"
+  },
+  "dependencies": {
+    "electron": "^39.0.0",
+    "electron-updater": "^6.6.2",
+    "toastify": "^2.0.1"
+  },
+  "devDependencies": {
+    "@electron/packager": "^19.0.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.irishcoder.nyslottery",
+    "productName": "NYS Lottery App",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "Lottery/**/*",
+      "Icon/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "Icon/New_York_Lottery.svg.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NYS Lottery App"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "REPLACE_WITH_YOUR_GITHUB_USERNAME",
+        "repo": "REPLACE_WITH_YOUR_REPO_NAME"
+      }
+    ]
+  }
+}

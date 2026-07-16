@@ -1,0 +1,2069 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self' data: blob:;
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com data:;
+    img-src 'self' data: blob: https:;
+    connect-src 'self' https://data.ny.gov https://api.allorigins.win https://corsproxy.io https://cors-anywhere.herokuapp.com https://nylottery.ny.gov https://www.lottery-numbers.com https://www.lottery.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
+  <link href="Lottery.css" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>NYS Lottery Pro - Professional Number Generator</title>
+</head>
+<body>
+  <!-- ================================
+       PROFESSIONAL HEADER SECTION
+       ================================ -->
+  <header id="main-header">
+    <div class="header-container">
+      <div class="header-left">
+        <h1>🎲 NYS Lottery Pro</h1>
+        <div class="muted">Advanced lottery number generator with AI-powered historical analysis and professional-grade algorithms</div>
+      </div>
+      <div class="header-right">
+        <div class="prize-display" id="prize-display">
+          <div class="prize-label">Select a Game</div>
+          <div class="prize-amount">Choose lottery game to view prizes</div>
+          <div class="prize-status" id="prize-status">
+            <span>🔴 LIVE</span>
+          </div>
+          <div class="next-drawing" id="next-drawing">
+            <span class="drawing-label">Next Drawing:</span>
+            <span class="drawing-date">Select a game</span>
+          </div>
+          <!-- Visual debug display (hidden) -->
+          <div id="debug-display">
+            <div id="debug-content"></div>
+          </div>
+        </div>
+        <div id="auto-fetch-status">
+          <span id="fetch-status-text">🔄 Auto-fetching jackpots...</span>
+        </div>
+        <button id="about-btn" class="btn-about">ℹ️ About</button>
+        <button id="quit-btn" class="btn-quit">✕ Exit</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================================
+       ABOUT MODAL
+       ================================ -->
+  <div id="about-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">About NYS Lottery Picker</h2>
+        <button id="close-about" class="modal-close">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <p><strong>Version:</strong> 2.0.0 Professional Edition</p>
+        <p><strong>Description:</strong> A sophisticated New York State Lottery number generator featuring advanced statistical analysis, machine learning-inspired frequency weighting, and professional-grade user experience.</p>
+        
+        <h3>🚀 Premium Features:</h3>
+        <ul>
+          <li>� Generate optimized numbers for all NYS lottery games</li>
+          <li>📊 Advanced historical data visualization and analysis</li>
+          <li>🧠 AI-powered frequency weighting algorithms</li>
+          <li>🔄 Cryptographically secure reproducible number generation</li>
+          <li>💾 Intelligent pick history management with analytics</li>
+          <li>📥 Professional CSV export with metadata</li>
+          <li>� Multiple strategic generation presets</li>
+          <li>⚡ Real-time data synchronization with NY State portal</li>
+          <li>📱 Responsive design optimized for all devices</li>
+        </ul>
+        
+        <h3>🎲 Supported Games:</h3>
+        <ul>
+          <li>🔴 Powerball - Multi-state jackpot game</li>
+          <li>🟡 Mega Millions - America's largest lottery</li>
+          <li>🔵 New York Lotto - Classic state lottery</li>
+          <li>🟢 Take 5 - Daily 5-number game</li>
+          <li>🟠 Pick 10 - High-odds strategy game</li>
+          <li>🟣 Cash4Life - $1,000 a day for life</li>
+          <li>⚫ Numbers (3-digit) - Daily quick pick</li>
+          <li>⚪ Win 4 - 4-digit daily game</li>
+          <li>🔘 Quick Draw (1/5/10 spots) - Instant keno-style</li>
+        </ul>
+        
+        <p><strong>📡 Data Source:</strong> Real-time historical lottery data sourced directly from the official New York State Open Data portal using secure API connections.</p>
+        
+        <h3>👨‍💻 Developer:</h3>
+        <p><strong>Created by:</strong> Judson M. Fitzpatrick</p>
+        <p><strong>Company:</strong> Irish_Coder Programming</p>
+        <p><strong>Copyright:</strong> © 2025 Irish_Coder Programming. All rights reserved.</p>
+        
+        <div class="disclaimer">
+          <strong>⚠️ Professional Disclaimer:</strong> This application is designed for entertainment and educational purposes only. All lottery games are based on random chance, and historical data analysis does not guarantee future winning outcomes. Please play responsibly and within your means. Past performance does not predict future results.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================
+       MAIN CONTENT AREA
+       ================================ -->
+  <main>
+    <!-- CONTROLS PANEL -->
+    <section class="panel" id="controls-panel">
+      <h2 class="panel-title">⚙️ Game Configuration & Advanced Controls</h2>
+      
+      <!-- Game Selection Row -->
+      <div class="row">
+        <div class="form-group form-group-flex">
+          <label for="game-select">🎯 Select Lottery Game</label>
+          <select id="game-select"></select>
+        </div>
+        <div class="form-group form-group-narrow">
+          <label for="count">🔢 Number of Picks</label>
+          <input id="count" type="number" min="1" max="200" value="5" />
+        </div>
+        <div class="form-group form-group-medium">
+          <label for="preset-select">🎲 Strategy Preset</label>
+          <select id="preset-select">
+            <option value="random">🎯 Pure Random</option>
+            <option value="low">⬇️ Favor Low Numbers</option>
+            <option value="high">⬆️ Favor High Numbers</option>
+            <option value="balanced">⚖️ Balanced Distribution</option>
+            <option value="avoid_recent">🚫 Avoid Recent Winners</option>
+          </select>
+        </div>
+        <div class="form-group form-group-wide">
+          <label for="seed">🔐 Random Seed (Optional)</label>
+          <input id="seed" type="text" placeholder="Enter seed for reproducible results" />
+        </div>
+      </div>
+
+      <!-- Advanced Options Row -->
+      <div class="row">
+        <div class="checkbox-group">
+          <input id="use-weighting" type="checkbox" />
+          <label for="use-weighting">📊 Enable AI Frequency Analysis</label>
+        </div>
+        <div class="checkbox-group">
+          <input id="unique-picks" type="checkbox" checked />
+          <label for="unique-picks">✨ Ensure Unique Combinations</label>
+        </div>
+        <div class="checkbox-group">
+          <input id="invert-weights" type="checkbox" />
+          <label for="invert-weights">🔄 Inverse Strategy (Avoid Hot Numbers)</label>
+        </div>
+      </div>
+
+      <!-- Professional Action Buttons Row -->
+      <div class="row action-row">
+        <div class="controls">
+          <button id="generate" class="btn-primary">🚀 Generate Numbers</button>
+          <button id="refresh" class="secondary">📊 Sync Historical Data</button>
+          <button id="test-all" class="secondary">🔍 Test All Datasets</button>
+          <button id="clear-fetched" class="secondary">🗑️ Clear Cache</button>
+          <button id="download-history" class="secondary">📥 Export CSV</button>
+          <button id="clear-saved" class="secondary">🧹 Clear History</button>
+        </div>
+        <div class="status-area">
+          <div id="last-run" class="muted">🟢 System Ready</div>
+        </div>
+      </div>
+      
+      <!-- Status Indicator Row -->
+      <div class="row">
+        <div id="fetch-status" class="muted">📡 Historical data connection standby</div>
+      </div>
+    </section>
+
+    <!-- RESULTS PANEL -->
+    <section class="panel" id="results-panel">
+      <h2 class="panel-title">🎯 Generated Number Combinations</h2>
+      
+      <div id="game-meta" class="muted game-info"></div>
+      <ul id="picks" class="picks"></ul>
+      
+      <div class="history-section">
+        <label for="history">📜 Saved Picks History & Analytics</label>
+        <textarea id="history" readonly placeholder="Your generated number combinations will appear here with timestamps and game details..."></textarea>
+      </div>
+    </section>
+
+    <!-- FREQUENCY CHART PANEL -->
+    <section class="panel" id="frequency-chart-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">📊 Number Frequency Analysis Chart</h2>
+        <div class="panel-controls">
+          <button id="refresh-chart" class="secondary">🔄 Update Chart</button>
+          <select id="chart-type" class="chart-type-select" title="Select chart type">
+            <option value="bar">📊 Bar Chart</option>
+            <option value="heatmap">🔥 Heat Map</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="frequency-chart-content" class="frequency-chart-container">
+        <div class="intro-message frequency-intro">
+          <div class="intro-icon">📊</div>
+          <div class="intro-content">
+            <h3>Number Frequency Analysis</h3>
+            <p>Select a lottery game and sync historical data to view detailed number frequency analysis. This interactive chart shows how often each number has appeared in past drawings, helping you identify patterns and trends.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION DIVIDER -->
+    <div class="section-divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">📊 Historical Data Analysis</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <!-- WINNING NUMBERS PANEL -->
+    <section class="panel" id="winning-numbers-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">🏆 Historical Winning Numbers Database</h2>
+        <div class="panel-controls">
+          <select id="history-limit" class="history-limit-select" title="Select number of draws to display">
+            <option value="10">📊 Last 10 Draws</option>
+            <option value="25" selected>📈 Last 25 Draws</option>
+            <option value="50">📉 Last 50 Draws</option>
+            <option value="100">📋 Last 100 Draws</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="winning-numbers-content" class="winning-numbers-container">
+        <div class="intro-message history-intro">
+          <div class="intro-icon">🏆</div>
+          <div class="intro-content">
+            <h3>Historical Winning Numbers</h3>
+            <p>View comprehensive historical data of actual winning numbers from past lottery drawings. Select your preferred lottery game and click "Sync Historical Data" to access detailed winning number records and analysis.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  // Track when the app starts to avoid showing fetch status during startup
+  window.appStartTime = Date.now();
+  
+  window.addEventListener('DOMContentLoaded', () => {
+    /* ====== Game definitions and dataset mapping ====== */
+    const GAMES = {
+      "Lotto": { 
+        balls: 6, min: 1, max: 59, maxNumber: 59, extra: null, order: "asc", 
+        notes: "Lotto: 6 of 59", 
+        socrata: { dataset: "6nbc-h7bj" },
+        color: "#D2461A", // Darker orange-red for Lotto
+        prizeName: "Jackpot",
+        estimatedPrize: "$8.2 Million",
+        drawingDays: [3, 6] // Wednesday and Saturday
+      },
+      "Mega Millions": { 
+        balls: 5, min: 1, max: 70, maxNumber: 70, extra: { name: "Mega Ball", min:1, max:25 }, order:"asc", 
+        notes:"Mega Millions: 5 of 70 + Mega Ball", 
+        socrata: { dataset: "5xaw-6ayf" },
+        color: "#B8860B", // Darker gold for Mega Millions
+        prizeName: "Jackpot",
+        estimatedPrize: "$843 Million",
+        drawingDays: [2, 5] // Tuesday and Friday
+      },
+      "Powerball": { 
+        balls: 5, min: 1, max: 69, maxNumber: 69, extra: { name: "Powerball", min:1, max:26 }, order:"asc", 
+        notes:"Powerball: 5 of 69 + Powerball", 
+        socrata: { dataset: "d6yy-54nr" },
+        color: "#CC0000", // Darker red for Powerball
+        prizeName: "Jackpot",
+        estimatedPrize: "$478 Million",
+        drawingDays: [1, 3, 6] // Monday, Wednesday, Saturday
+      },
+      "Take 5": { 
+        balls: 5, min:1, max: 39, maxNumber: 39, extra: null, order:"asc", 
+        notes:"Take 5: 5 of 39", 
+        socrata: { dataset: "dg63-4siq" },
+        color: "#228B22", // Darker green for Take 5
+        prizeName: "Top Prize",
+        estimatedPrize: "$57,575",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6], // Daily
+        drawingTimes: ["2:30 PM", "10:30 PM"] // Midday and Evening
+      },
+      "Pick 10": { 
+        balls: 10, min:1, max:80, maxNumber: 80, extra:null, order:"asc", 
+        notes:"Pick 10: 10 of 80", 
+        socrata: { dataset: "bycu-cw7c" },
+        color: "#1E3A96", // Darker distinctive blue for Pick 10
+        prizeName: "Top Prize",
+        estimatedPrize: "$500,000",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6], // Daily
+        drawingTimes: ["1:30 PM", "11:21 PM"] // Midday and Evening
+      },
+      "Numbers (3-digit)": { 
+        balls: 3, min:0, max:9, maxNumber: 9, extra:null, order:"fixed", 
+        notes:"Numbers: 3 digits (0-9 per position)", 
+        socrata: { dataset: "hsys-3def" },
+        color: "#6A4C93", // Darker purple for Numbers
+        prizeName: "Straight",
+        estimatedPrize: "$500",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6], // Daily
+        drawingTimes: ["12:20 PM", "7:30 PM"] // Midday and Evening
+      },
+      "Win 4": { 
+        balls:4, min:0, max:9, maxNumber: 9, extra:null, order:"fixed", 
+        notes:"Win 4: 4 digits (0-9 per position)", 
+        socrata: { dataset: "hsys-3def" },
+        color: "#1B8A85", // Darker teal for Win 4
+        prizeName: "Straight",
+        estimatedPrize: "$5,000",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6], // Daily
+        drawingTimes: ["12:20 PM", "7:30 PM"] // Midday and Evening (same as Numbers)
+      },
+      "Cash4Life": { 
+        balls:5, min:1, max:60, maxNumber: 60, extra:{name:"Cash Ball", min:1, max:4}, order:"asc", 
+        notes:"Cash4Life: 5 of 60 + Cash Ball", 
+        socrata: { dataset: "kwxv-fwze" },
+        color: "#0D4E12", // Much darker emerald green for Cash4Life
+        prizeName: "Top Prize",
+        estimatedPrize: "$1,000/Day for Life",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6] // Daily
+      },
+      "Quick Draw (1 spot)": { 
+        balls:1, min:1, max:80, maxNumber: 80, extra:null, order:"none", 
+        notes:"Quick Draw: 1 spot", 
+        socrata: { dataset: "7sqk-ycpk" },
+        color: "#E91E63", // Bright pink for Quick Draw 1-spot
+        prizeName: "Top Prize",
+        estimatedPrize: "$2.50",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6] // Every 4 minutes daily
+      },
+      "Quick Draw (5 spots)": { 
+        balls:5, min:1, max:80, maxNumber: 80, extra:null, order:"asc", 
+        notes:"Quick Draw: 5 spots", 
+        socrata: { dataset: "7sqk-ycpk" },
+        color: "#C2185B", // Medium pink for Quick Draw 5-spots
+        prizeName: "Top Prize",
+        estimatedPrize: "$300",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6] // Every 4 minutes daily
+      },
+      "Quick Draw (10 spots)": { 
+        balls:10, min:1, max:80, maxNumber: 80, extra:null, order:"asc", 
+        notes:"Quick Draw: 10 spots", 
+        socrata: { dataset: "7sqk-ycpk" },
+        color: "#AD1457", // Darker pink for Quick Draw 10-spots
+        prizeName: "Top Prize",
+        estimatedPrize: "$100,000",
+        drawingDays: [0, 1, 2, 3, 4, 5, 6] // Every 4 minutes daily
+      }
+    };
+
+    /* ====== Seedable RNG ====== */
+    function xorshift32(seed) {
+      let x = seed >>> 0 || 2463534242;
+      return function() {
+        x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+        return (x >>> 0) / 4294967296;
+      };
+    }
+    function toIntSeed(s) {
+      if(!s) return Date.now() & 0xffffffff;
+      let h=2166136261;
+      for(let i=0;i<s.length;i++){
+        h ^= s.charCodeAt(i);
+        h += (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24);
+      }
+      return h >>> 0;
+    }
+
+    /* ====== State (with localStorage persistence) ====== */
+    const state = {
+      saved: loadSaved(),     // [{game,pick,ts}]
+      freq: {},               // {game: {n:count, "__extra__X":count}}
+      fetchedRows: {}         // raw rows per game
+    };
+
+    function loadSaved() {
+      try {
+        const raw = localStorage.getItem('nys.saved');
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    }
+    function persistSaved() {
+      try {
+        localStorage.setItem('nys.saved', JSON.stringify(state.saved));
+      } catch {}
+    }
+
+    /* ====== Helpers ====== */
+    function range(min,max){ const a=[]; for(let i=min;i<=max;i++) a.push(i); return a; }
+    function sampleWeighted(pool, weights, rng) {
+      const total = weights.reduce((a,b)=>a+b,0);
+      let r = rng()*total;
+      for(let i=0;i<pool.length;i++){ r -= weights[i]; if(r <= 0) return pool[i]; }
+      return pool[pool.length-1];
+    }
+
+    /* ====== Frequency extraction ====== */
+    function accumulateFrequenciesForGame(gameKey, rows) {
+      const g = GAMES[gameKey];
+      const freq = {};
+      rows.forEach(row => {
+        // Try common fields first
+        const w = row.winning_numbers || row.winningnumbers || row.winning_nums;
+        // Handle Take 5 specific fields
+        const take5_evening = row.evening_winning_numbers;
+        const take5_midday = row.midday_winning_numbers;
+        
+        if(w) {
+          const parts = String(w).replace(/[^0-9, ]+/g,'').split(/[, ]+/).filter(Boolean);
+          parts.forEach(s => {
+            const n = parseInt(s,10);
+            if(!isNaN(n)) freq[n] = (freq[n]||0) + 1;
+          });
+        } else if(take5_evening || take5_midday) {
+          // Handle Take 5 format with space-separated numbers
+          const processWinningNumbers = (numbersStr) => {
+            if(numbersStr) {
+              const parts = String(numbersStr).split(/\s+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+              parts.forEach(n => {
+                freq[n] = (freq[n]||0) + 1;
+              });
+            }
+          };
+          
+          processWinningNumbers(take5_evening);
+          processWinningNumbers(take5_midday);
+        } else {
+          // Try multiple field patterns
+          let foundNumbers = [];
+          
+          // Pattern 1: ball_1, ball_2, etc.
+          for(let i=1; i<=g.balls; i++){
+            const num = row[`ball_${i}`];
+            if(num !== undefined && num !== null) foundNumbers.push(parseInt(num));
+          }
+          
+          // Pattern 2: winning_number_1, winning_number_2, etc.
+          if (foundNumbers.length === 0) {
+            for(let i=1; i<=g.balls; i++){
+              const num = row[`winning_number_${i}`];
+              if(num !== undefined && num !== null) foundNumbers.push(parseInt(num));
+            }
+          }
+          
+          // Pattern 3: number_1, number_2, etc.
+          if (foundNumbers.length === 0) {
+            for(let i=1; i<=g.balls; i++){
+              const num = row[`number_${i}`];
+              if(num !== undefined && num !== null) foundNumbers.push(parseInt(num));
+            }
+          }
+          
+          // Pattern 4: n1, n2, n3, etc.
+          if (foundNumbers.length === 0) {
+            for(let i=1; i<=g.balls; i++){
+              const num = row[`n${i}`];
+              if(num !== undefined && num !== null) foundNumbers.push(parseInt(num));
+            }
+          }
+          
+          // Pattern 5: first_number, second_number, etc.
+          if (foundNumbers.length === 0) {
+            const ordinals = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+            for(let i=0; i<g.balls && i<ordinals.length; i++){
+              const num = row[`${ordinals[i]}_number`];
+              if(num !== undefined && num !== null) foundNumbers.push(parseInt(num));
+            }
+          }
+          
+          // Add found numbers to frequency count
+          foundNumbers.forEach(n => {
+            if(!isNaN(n)) freq[n] = (freq[n]||0) + 1;
+          });
+        }
+        
+        // Handle extras
+        const extra = row.mega_ball || row.powerball || row.cash_ball || row.megaball || row.power_ball;
+        if(extra) {
+          const n = parseInt(extra,10);
+          if(!isNaN(n)) freq["__extra__"+n] = (freq["__extra__"+n]||0) + 1;
+        }
+      });
+      return freq;
+    }
+
+    /* ====== Fetch from Socrata (graceful fallback) ====== */
+    async function fetchSocrataDataset(datasetId, limit=50000) {
+      const url = `https://data.ny.gov/resource/${datasetId}.json?$limit=${limit}&$order=draw_date DESC`;
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error('Fetch failed: ' + resp.status);
+      return resp.json();
+    }
+
+    // Helper function to ensure proper prize formatting
+    function formatPrizeAmount(amount, gameKey) {
+      if (!amount) return null;
+      
+      let formattedAmount = amount.toString().trim();
+      
+      // If it's just a number, add proper formatting
+      if (/^\d+(\.\d+)?$/.test(formattedAmount)) {
+        formattedAmount = `$${formattedAmount} Million`;
+      }
+      // If it has $ but no Million/Billion, add Million
+      else if (/^\$\d+(\.\d+)?$/.test(formattedAmount)) {
+        formattedAmount = `${formattedAmount} Million`;
+      }
+      // If it already has proper formatting, keep it
+      else if (/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i.test(formattedAmount)) {
+        // Already properly formatted
+      }
+      // If it's missing $, add it
+      else if (/\d+(?:\.\d+)?\s*(?:Million|Billion)/i.test(formattedAmount)) {
+        formattedAmount = `$${formattedAmount}`;
+      }
+      // Fallback to default for this game
+      else {
+        const game = GAMES[gameKey];
+        formattedAmount = game ? game.estimatedPrize : `$${formattedAmount}`;
+      }
+      
+      console.log(`🎰 Formatted prize for ${gameKey}: "${amount}" → "${formattedAmount}"`);
+      return formattedAmount;
+    }
+
+    async function fetchCurrentPrizeAmount(gameKey) {
+      const g = GAMES[gameKey];
+      console.log(`🔍 Attempting to fetch current prize for ${gameKey}...`);
+      
+      try {
+        // Method 1: Try to fetch from NY Lottery official website
+        const nyLotteryPrize = await fetchFromNYLotteryWebsite(gameKey);
+        if (nyLotteryPrize) {
+          console.log(`✅ Got prize from NY Lottery website for ${gameKey}: ${nyLotteryPrize}`);
+          const formattedPrize = formatPrizeAmount(nyLotteryPrize, gameKey);
+          g.estimatedPrize = formattedPrize;
+          localStorage.setItem(`${gameKey.toLowerCase().replace(/\s+/g, '')}Jackpot`, formattedPrize);
+          return formattedPrize;
+        }
+        
+        // Method 2: Try lottery data aggregator APIs
+        const apiPrize = await fetchFromLotteryAPIs(gameKey);
+        if (apiPrize) {
+          console.log(`✅ Got prize from API for ${gameKey}: ${apiPrize}`);
+          const formattedPrize = formatPrizeAmount(apiPrize, gameKey);
+          g.estimatedPrize = formattedPrize;
+          localStorage.setItem(`${gameKey.toLowerCase().replace(/\s+/g, '')}Jackpot`, formattedPrize);
+          return formattedPrize;
+        }
+        
+        // Method 3: Use cached value from localStorage
+        const cachedPrize = localStorage.getItem(`${gameKey.toLowerCase().replace(/\s+/g, '')}Jackpot`);
+        if (cachedPrize) {
+          console.log(`📦 Using cached prize for ${gameKey}: ${cachedPrize}`);
+          const formattedCached = formatPrizeAmount(cachedPrize, gameKey);
+          g.estimatedPrize = formattedCached;
+          return formattedCached;
+        }
+        
+        // Method 4: Fallback to current estimated prize
+        console.log(`⚠️ Using fallback prize for ${gameKey}: ${g.estimatedPrize}`);
+        return g.estimatedPrize;
+        
+      } catch (error) {
+        console.error(`❌ Error fetching prize for ${gameKey}:`, error);
+        // Return current estimated prize as fallback
+        return g.estimatedPrize;
+      }
+    }
+
+    async function fetchFromNYLotteryWebsite(gameKey) {
+      try {
+        console.log(`🌐 Fetching ${gameKey} from NY Lottery website...`);
+        
+        // Try multiple CORS proxies with different response formats
+        const corsProxies = [
+          {
+            url: 'https://api.allorigins.win/get?url=',
+            parseResponse: async (response) => {
+              const data = await response.json();
+              return data.contents || '';
+            }
+          },
+          {
+            url: 'https://corsproxy.io/?',
+            parseResponse: async (response) => {
+              // corsproxy.io returns the HTML directly, not JSON
+              const text = await response.text();
+              return text;
+            }
+          }
+        ];
+        
+        for (const proxy of corsProxies) {
+          try {
+            const proxyName = proxy.url.includes('allorigins') ? 'AllOrigins' : 'CorsProxy';
+            console.log(`🌐 Trying NY Lottery with ${proxyName}...`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
+            const response = await fetch(`${proxy.url}${encodeURIComponent('https://nylottery.ny.gov/')}`, {
+              method: 'GET',
+              signal: controller.signal,
+              headers: {
+                'Accept': 'application/json, text/html, */*',
+              }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+              console.log(`HTTP ${response.status} from NY Lottery website via ${proxyName}`);
+              continue;
+            }
+            
+            let html = '';
+            try {
+              html = await proxy.parseResponse(response);
+            } catch (parseError) {
+              console.log(`Failed to parse response from ${proxyName}:`, parseError.message);
+              continue;
+            }
+            
+            if (!html || html.length < 100) {
+              console.log(`No valid HTML content received from ${proxyName}`);
+              continue;
+            }
+            
+            // Parse HTML to extract jackpot amounts
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Get all text content for more flexible searching
+            const allText = doc.body ? doc.body.textContent || '' : '';
+            
+            // Look for jackpot amounts based on game type with more flexible patterns
+            let prizeAmount = null;
+            
+            if (gameKey === 'Mega Millions') {
+              // Look for Mega Millions jackpot with various patterns
+              const patterns = [
+                /\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)(?=.*[Mm]ega)/i,
+                /[Mm]ega.*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i,
+                /MEGA.*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i
+              ];
+              
+              for (const pattern of patterns) {
+                const match = allText.match(pattern);
+                if (match) {
+                  const amountMatch = match[0].match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i);
+                  if (amountMatch) {
+                    prizeAmount = amountMatch[0];
+                    break;
+                  }
+                }
+              }
+            } else if (gameKey === 'Powerball') {
+              // Look for Powerball jackpot
+              const patterns = [
+                /\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)(?=.*[Pp]ower)/i,
+                /[Pp]ower.*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i,
+                /POWER.*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i
+              ];
+              
+              for (const pattern of patterns) {
+                const match = allText.match(pattern);
+                if (match) {
+                  const amountMatch = match[0].match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i);
+                  if (amountMatch) {
+                    prizeAmount = amountMatch[0];
+                    break;
+                  }
+                }
+              }
+            } else if (gameKey === 'Lotto') {
+              // Look for NY Lotto jackpot
+              const patterns = [
+                /\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)(?=.*[Ll]otto)/i,
+                /[Ll]otto.*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i,
+                /(?:New York|NY)\s*[Ll]otto.*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i
+              ];
+              
+              for (const pattern of patterns) {
+                const match = allText.match(pattern);
+                if (match) {
+                  const amountMatch = match[0].match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i);
+                  if (amountMatch) {
+                    prizeAmount = amountMatch[0];
+                    break;
+                  }
+                }
+              }
+            }
+            
+            if (prizeAmount) {
+              console.log(`✅ Found ${gameKey} jackpot on NY Lottery website via ${proxyName}: ${prizeAmount}`);
+              return prizeAmount;
+            } else {
+              console.log(`⚠️ No ${gameKey} jackpot found in NY Lottery content via ${proxyName}`);
+            }
+            
+          } catch (proxyError) {
+            const proxyName = proxy.url.includes('allorigins') ? 'AllOrigins' : 'CorsProxy';
+            if (proxyError.name === 'AbortError') {
+              console.log(`⏰ Timeout fetching ${gameKey} from NY Lottery website via ${proxyName}`);
+            } else {
+              console.log(`⚠️ Failed to fetch ${gameKey} from NY Lottery website via ${proxyName}:`, proxyError.message);
+            }
+          }
+          
+          // Small delay between proxy attempts
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        console.log(`⚠️ Could not find ${gameKey} jackpot on NY Lottery website using any proxy`);
+        return null;
+        
+      } catch (error) {
+        console.error(`❌ Failed to fetch ${gameKey} from NY Lottery website:`, error);
+        return null;
+      }
+    }
+
+    async function fetchFromLotteryAPIs(gameKey) {
+      try {
+        console.log(`🔌 Fetching ${gameKey} from lottery APIs...`);
+        
+        // Multiple CORS proxy services with proper response handling
+        const corsProxies = [
+          {
+            url: 'https://api.allorigins.win/get?url=',
+            parseResponse: async (response) => {
+              const data = await response.json();
+              return data.contents || '';
+            }
+          },
+          {
+            url: 'https://corsproxy.io/?',
+            parseResponse: async (response) => {
+              return await response.text();
+            }
+          }
+        ];
+        
+        // Simplified API sources with realistic expectations
+        const apiSources = [
+          {
+            name: 'Direct NY Lottery check',
+            getUrls: (proxies) => proxies.map(proxy => ({
+              url: `${proxy.url}${encodeURIComponent('https://nylottery.ny.gov/')}`,
+              parser: proxy.parseResponse
+            })),
+            parse: (html) => {
+              try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Look for jackpot amounts in text content
+                const allText = doc.body ? doc.body.textContent || '' : '';
+                
+                if (gameKey === 'Mega Millions') {
+                  const megaMatch = allText.match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)(?=.*mega|Mega)/i) ||
+                                   allText.match(/(?:mega|Mega).*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i);
+                  if (megaMatch) return megaMatch[0].match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i)?.[0];
+                } else if (gameKey === 'Powerball') {
+                  const powerMatch = allText.match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)(?=.*power|Power)/i) ||
+                                    allText.match(/(?:power|Power).*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i);
+                  if (powerMatch) return powerMatch[0].match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i)?.[0];
+                } else if (gameKey === 'Lotto') {
+                  const lottoMatch = allText.match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)(?=.*lotto|Lotto)/i) ||
+                                    allText.match(/(?:lotto|Lotto).*?\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i);
+                  if (lottoMatch) return lottoMatch[0].match(/\$[\d,]+(?:\.\d+)?\s*(?:Million|Billion)/i)?.[0];
+                }
+                return null;
+              } catch (parseError) {
+                console.log('Parse error:', parseError);
+                return null;
+              }
+            }
+          }
+        ];
+        
+        // Try each API source with multiple CORS proxies
+        for (const source of apiSources) {
+          const urlConfigs = source.getUrls(corsProxies);
+          
+          for (const config of urlConfigs) {
+            try {
+              const proxyName = config.url.includes('allorigins') ? 'AllOrigins' : 'CorsProxy';
+              console.log(`🔌 Trying ${source.name} with ${proxyName} for ${gameKey}...`);
+              
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+              
+              const response = await fetch(config.url, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                  'Accept': 'application/json, text/html, */*',
+                  'User-Agent': 'NYS Lottery App'
+                }
+              });
+              
+              clearTimeout(timeoutId);
+              
+              if (response.ok) {
+                let htmlContent = '';
+                try {
+                  htmlContent = await config.parser(response);
+                } catch (parseError) {
+                  console.log(`Failed to parse response from ${proxyName}:`, parseError.message);
+                  continue;
+                }
+                
+                if (htmlContent && htmlContent.length > 100) {
+                  const prizeAmount = source.parse(htmlContent);
+                  
+                  if (prizeAmount) {
+                    console.log(`✅ Found ${gameKey} jackpot from ${source.name} via ${proxyName}: ${prizeAmount}`);
+                    return prizeAmount;
+                  }
+                }
+              } else {
+                console.log(`HTTP ${response.status} from ${source.name} via ${proxyName}`);
+              }
+            } catch (sourceError) {
+              const proxyName = config.url.includes('allorigins') ? 'AllOrigins' : 'CorsProxy';
+              if (sourceError.name === 'AbortError') {
+                console.log(`⏰ Timeout for ${source.name} via ${proxyName} (${gameKey})`);
+              } else {
+                console.log(`⚠️ ${source.name} via ${proxyName} failed for ${gameKey}:`, sourceError.message);
+              }
+            }
+            
+            // Small delay between proxy attempts
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        console.log(`⚠️ No API sources returned ${gameKey} jackpot`);
+        return null;
+        
+      } catch (error) {
+        console.error(`❌ Failed to fetch ${gameKey} from APIs:`, error);
+        return null;
+      }
+    }
+
+    // Function to automatically fetch jackpots for all major games
+    async function fetchAllJackpots(isStartupFetch = false) {
+      const majorGames = ['Mega Millions', 'Powerball', 'Lotto'];
+      const autoFetchStatus = document.getElementById('auto-fetch-status');
+      const fetchStatusText = document.getElementById('fetch-status-text');
+      
+      console.log('💰 Fetching jackpots for all major games...');
+      
+      // Never show status during startup or first 3 seconds
+      const isStartupPeriod = isStartupFetch || (Date.now() - window.appStartTime) < 3000;
+      if (!isStartupPeriod && autoFetchStatus && fetchStatusText) {
+        autoFetchStatus.style.display = 'block';
+        fetchStatusText.textContent = '🔄 Refreshing current jackpots...';
+      }
+      
+      let successCount = 0;
+      
+      for (const gameKey of majorGames) {
+        try {
+          console.log(`🎯 Fetching ${gameKey}...`);
+          
+          // Update status text only if showing
+          if (!isStartupPeriod && fetchStatusText && autoFetchStatus.style.display === 'block') {
+            fetchStatusText.textContent = `🔄 Updating ${gameKey} jackpot...`;
+          }
+          
+          const prize = await fetchCurrentPrizeAmount(gameKey);
+          console.log(`✅ ${gameKey}: ${prize}`);
+          successCount++;
+          
+          // Update the display if this game is currently selected
+          if (gameSelect.value === gameKey) {
+            const prizeAmount = document.querySelector('.prize-amount');
+            const prizeStatus = document.getElementById('prize-status');
+            if (prizeAmount) {
+              prizeAmount.textContent = prize;
+              prizeAmount.style.opacity = '1';
+              if (prizeStatus) {
+                prizeStatus.style.display = 'none';
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Failed to fetch ${gameKey}:`, error);
+        }
+        
+        // Shorter delay during startup for faster loading, normal delay during refresh
+        const delayTime = isStartupPeriod ? 300 : 1000; // 300ms vs 1000ms
+        await new Promise(resolve => setTimeout(resolve, delayTime));
+      }
+      
+      // Show completion status only if we were showing updates
+      if (!isStartupPeriod && fetchStatusText && autoFetchStatus.style.display === 'block') {
+        if (successCount === majorGames.length) {
+          fetchStatusText.textContent = `✅ All jackpots refreshed!`;
+        } else if (successCount > 0) {
+          fetchStatusText.textContent = `⚠️ ${successCount}/${majorGames.length} jackpots updated`;
+        } else {
+          fetchStatusText.textContent = `❌ Update failed, using cached amounts`;
+        }
+        
+        // Hide status after 2 seconds
+        setTimeout(() => {
+          if (autoFetchStatus) {
+            autoFetchStatus.style.display = 'none';
+          }
+        }, 2000);
+      }
+      
+      console.log(`✅ Finished fetching all jackpots (${successCount}/${majorGames.length} successful)`);
+    }
+
+    async function refreshHistoricalDataFor(gameKey, cb) {
+      const g = GAMES[gameKey];
+      if(!g.socrata || !g.socrata.dataset) { cb && cb(`No remote dataset configured for ${gameKey}`); return; }
+      try {
+        cb && cb(`Fetching ${gameKey}...`);
+        const rows = await fetchSocrataDataset(g.socrata.dataset, 50000);
+        console.log(`✅ SUCCESS: ${gameKey} (${g.socrata.dataset})`);
+        console.log(`Sample row for ${gameKey}:`, rows[0]);
+        console.log(`Available fields for ${gameKey}:`, Object.keys(rows[0] || {}));
+        state.fetchedRows[gameKey] = rows;
+        state.freq[gameKey] = accumulateFrequenciesForGame(gameKey, rows);
+        cb && cb(`✅ Loaded ${rows.length} rows for ${gameKey}`);
+      } catch (err) {
+        console.error(`❌ FAILED: ${gameKey} (${g.socrata.dataset}) - Error:`, err.message);
+        cb && cb(`❌ Fetch error for ${gameKey}: ${err.message}`);
+      }
+    }
+
+    /* ====== Generate picks ====== */
+    function generateOne(gameKey, opts) {
+      const g = GAMES[gameKey];
+      const rng = opts.rng || Math.random;
+
+      if(g.order === 'fixed') {
+        const digits = range(g.min, g.max);
+        const out = [];
+        for(let p=0;p<g.balls;p++){
+          if(opts.useWeights && state.freq[gameKey]) {
+            const weights = digits.map(d => (state.freq[gameKey][d]||1));
+            const chosen = sampleWeighted(digits, opts.invertWeights ? weights.map(w=>1/(w||1)) : weights, rng);
+            out.push(chosen);
+          } else {
+            out.push(digits[Math.floor(rng()*digits.length)]);
+          }
+        }
+        return { numbers: out, extra: null };
+      }
+
+      // combination games
+      const pool = range(g.min, g.max);
+      let weights = pool.map(n => (state.freq[gameKey] && state.freq[gameKey][n]) ? state.freq[gameKey][n] : 1);
+
+      if(opts.preset === 'low') {
+        for(let i=0;i<pool.length;i++) weights[i] *= (1 + ((g.max - pool[i]) / (g.max - g.min + 1)));
+      } else if(opts.preset === 'high') {
+        for(let i=0;i<pool.length;i++) weights[i] *= (1 + ((pool[i] - g.min) / (g.max - g.min + 1)));
+      } else if(opts.preset === 'balanced') {
+        const mid = (g.min + g.max)/2;
+        for(let i=0;i<pool.length;i++) weights[i] *= (1 + (1 - Math.abs(pool[i]-mid)/(g.max-g.min)));
+      } else if(opts.preset === 'avoid_recent' && state.freq[gameKey]) {
+        weights = weights.map(w => 1/(w||1));
+      }
+
+      if(opts.invertWeights) weights = weights.map(w => 1/(w||1));
+
+      const chosen = [];
+      const localPool = pool.slice();
+      const localWeights = weights.slice();
+      for(let k=0;k<g.balls;k++){
+        const pick = sampleWeighted(localPool, localWeights, rng);
+        chosen.push(pick);
+        const idx = localPool.indexOf(pick);
+        localPool.splice(idx,1);
+        localWeights.splice(idx,1);
+      }
+      chosen.sort((a,b)=>a-b);
+
+      let extraVal = null;
+      if(g.extra) {
+        const ePool = range(g.extra.min, g.extra.max);
+        let eWeights = ePool.map(n => (state.freq[gameKey] && state.freq[gameKey]["__extra__"+n]) ? state.freq[gameKey]["__extra__"+n] : 1);
+        if(opts.invertWeights || opts.preset === 'avoid_recent') eWeights = eWeights.map(w=>1/(w||1));
+        extraVal = sampleWeighted(ePool, eWeights, rng);
+      }
+
+      return { numbers: chosen, extra: extraVal };
+    }
+
+    function generatePicks(gameKey, count, opts) {
+      const rng = opts.seed ? xorshift32(toIntSeed(opts.seed)) : Math.random;
+      const out = [];
+      const seen = new Set();
+      let attempts = 0;
+      while(out.length < count && attempts < count * 40) {
+        const p = generateOne(gameKey, Object.assign({}, opts, { rng }));
+        const key = p.numbers.join(',') + (p.extra !== null && p.extra !== undefined ? '|' + p.extra : '');
+        if(opts.unique && !seen.has(key)) { out.push(p); seen.add(key); }
+        else if(!opts.unique) out.push(p);
+        attempts++;
+      }
+      return out;
+    }
+
+    /* ====== DOM refs ====== */
+    const gameSelect = document.getElementById('game-select');
+    const presetSelect = document.getElementById('preset-select');
+    const countInput = document.getElementById('count');
+    const seedInput = document.getElementById('seed');
+    const generateBtn = document.getElementById('generate');
+    const refreshBtn = document.getElementById('refresh');
+    const testAllBtn = document.getElementById('test-all');
+    const clearFetchedBtn = document.getElementById('clear-fetched');
+    const clearSavedBtn = document.getElementById('clear-saved');
+    const downloadBtn = document.getElementById('download-history');
+    const picksList = document.getElementById('picks');
+    const historyArea = document.getElementById('history');
+    const lastRun = document.getElementById('last-run');
+    const fetchStatus = document.getElementById('fetch-status');
+    const gameMeta = document.getElementById('game-meta');
+    const useWeighting = document.getElementById('use-weighting');
+    const invertWeights = document.getElementById('invert-weights');
+    const uniquePicks = document.getElementById('unique-picks');
+    const winningNumbersContent = document.getElementById('winning-numbers-content');
+    const historyLimit = document.getElementById('history-limit');
+
+    // populate games
+    Object.keys(GAMES).forEach(k => {
+      const o = document.createElement('option'); o.value = k; o.textContent = k; gameSelect.appendChild(o);
+    });
+    
+    // Set default selection to Powerball
+    gameSelect.value = 'Powerball';
+
+    function refreshMeta() {
+      const key = gameSelect.value;
+      const g = GAMES[key];
+      gameMeta.textContent = `${g.notes} • Numbers: ${g.balls} • Range: ${g.min}-${g.max}`;
+      fetchStatus.textContent = state.freq[key] ? `Frequencies loaded for ${key}` : `No fetched frequencies for ${key}`;
+      fetchStatus.className = state.freq[key] ? 'muted status-ok' : 'muted status-warn';
+    }
+
+    function renderHistory() {
+      console.log('renderHistory called, state.saved:', state.saved);
+      console.log('historyArea element:', historyArea);
+      
+      if (!state.saved || state.saved.length === 0) {
+        historyArea.value = '📝 No saved picks yet. Generate some numbers and click "Save" to build your history.';
+        return;
+      }
+      
+      historyArea.value = state.saved.map(h =>
+        `${new Date(h.ts).toLocaleDateString()} ${new Date(h.ts).toLocaleTimeString()} | ${h.game} | ${h.pick.numbers.join(', ')}${h.pick.extra !== null && h.pick.extra !== undefined ? ' • ' + h.pick.extra : ''}`
+      ).join('\n');
+    }
+
+    function renderWinningNumbers() {
+      const gameKey = gameSelect.value;
+      const limit = parseInt(historyLimit.value) || 25;
+      
+      // First, let's test with dummy data to make sure the display works
+      if (!state.fetchedRows[gameKey] || !state.fetchedRows[gameKey].length) {
+        winningNumbersContent.innerHTML = `
+          <div class="muted">No historical data available for ${gameKey}. Click "Refresh historical data" to load winning numbers.</div>
+          <div style="margin-top: 8px; padding: 8px; background: #f0f0f0; border-radius: 4px;">
+            <strong>Debug Info:</strong><br>
+            Selected game: ${gameKey}<br>
+            Has fetched data: ${!!state.fetchedRows[gameKey]}<br>
+            Data length: ${state.fetchedRows[gameKey] ? state.fetchedRows[gameKey].length : 0}<br>
+            Available games with data: ${Object.keys(state.fetchedRows).join(', ') || 'None'}
+          </div>
+        `;
+        return;
+      }
+
+      const rows = state.fetchedRows[gameKey].slice(0, limit);
+      const game = GAMES[gameKey];
+      
+      let html = '<div class="winning-numbers-list">';
+      html += `<div style="margin-bottom: 8px; font-size: 12px; color: #666;">Showing ${rows.length} results for ${gameKey}</div>`;
+      
+      rows.forEach((row, index) => {
+        console.log(`Row ${index} data for ${gameKey}:`, row); // Debug each row
+        
+        const date = row.draw_date ? new Date(row.draw_date).toLocaleDateString() : 'Unknown date';
+        let numbers = [];
+        let extra = null;
+        
+        // Parse numbers based on actual data structure - try multiple field patterns
+        if (row.winning_numbers) {
+          // Handle winning_numbers field (like Mega Millions)
+          if (typeof row.winning_numbers === 'string') {
+            if (game.order === 'fixed') {
+              // For Numbers and Win 4, split each character
+              numbers = row.winning_numbers.replace(/\s/g, '').split('').map(n => parseInt(n));
+            } else {
+              // For combination games, split by separators
+              numbers = row.winning_numbers.split(/[\s,-]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+            }
+          }
+        } else if (row.evening_winning_numbers || row.midday_winning_numbers) {
+          // Handle Take 5 format
+          const winningStr = row.evening_winning_numbers || row.midday_winning_numbers;
+          numbers = String(winningStr).split(/\s+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        } else {
+          // Try multiple field name patterns
+          const possiblePatterns = [
+            // Pattern 1: ball_1, ball_2, etc.
+            () => {
+              const nums = [];
+              for (let i = 1; i <= game.balls; i++) {
+                const num = row[`ball_${i}`];
+                if (num !== undefined && num !== null) nums.push(parseInt(num));
+              }
+              return nums;
+            },
+            // Pattern 2: winning_number_1, winning_number_2, etc.
+            () => {
+              const nums = [];
+              for (let i = 1; i <= game.balls; i++) {
+                const num = row[`winning_number_${i}`];
+                if (num !== undefined && num !== null) nums.push(parseInt(num));
+              }
+              return nums;
+            },
+            // Pattern 3: number_1, number_2, etc.
+            () => {
+              const nums = [];
+              for (let i = 1; i <= game.balls; i++) {
+                const num = row[`number_${i}`];
+                if (num !== undefined && num !== null) nums.push(parseInt(num));
+              }
+              return nums;
+            },
+            // Pattern 4: n1, n2, n3, etc.
+            () => {
+              const nums = [];
+              for (let i = 1; i <= game.balls; i++) {
+                const num = row[`n${i}`];
+                if (num !== undefined && num !== null) nums.push(parseInt(num));
+              }
+              return nums;
+            },
+            // Pattern 5: first_number, second_number, etc.
+            () => {
+              const nums = [];
+              const ordinals = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+              for (let i = 0; i < game.balls && i < ordinals.length; i++) {
+                const num = row[`${ordinals[i]}_number`];
+                if (num !== undefined && num !== null) nums.push(parseInt(num));
+              }
+              return nums;
+            },
+            // Pattern 6: Try any field that looks like a number
+            () => {
+              const nums = [];
+              const allFields = Object.keys(row);
+              const numberFields = allFields.filter(field => 
+                /^(number|ball|winning|n)\d*$/i.test(field) || 
+                /\d+$/.test(field)
+              ).sort();
+              
+              for (let i = 0; i < Math.min(numberFields.length, game.balls); i++) {
+                const num = row[numberFields[i]];
+                if (num !== undefined && num !== null && !isNaN(parseInt(num))) {
+                  nums.push(parseInt(num));
+                }
+              }
+              return nums;
+            }
+          ];
+          
+          // Try each pattern until we find numbers
+          for (const pattern of possiblePatterns) {
+            const nums = pattern();
+            if (nums.length > 0) {
+              numbers = nums;
+              break;
+            }
+          }
+        }
+        
+        // Show debugging info for first 3 rows to see field structure
+        if (index < 3) {
+          console.log(`${gameKey} Row ${index} fields:`, Object.keys(row));
+          console.log(`${gameKey} Row ${index} data:`, row);
+          console.log(`${gameKey} Row ${index} parsed numbers:`, numbers);
+        }
+        
+        // Handle extra ball based on game type
+        if (game.extra) {
+          if (gameKey === 'Mega Millions') {
+            extra = row.mega_ball;
+          } else if (gameKey === 'Powerball') {
+            extra = row.powerball;
+          } else if (gameKey === 'Cash4Life') {
+            extra = row.cash_ball;
+          } else {
+            // Generic fallback
+            extra = row.mega_ball || row.powerball || row.cash_ball || row.bonus_ball || row.extra_ball;
+          }
+        }
+        
+        const numbersText = numbers.length ? numbers.join(' - ') : 'No numbers found';
+        const extraText = extra ? `<span class="winning-extra">${game.extra ? game.extra.name : 'Extra'}: ${extra}</span>` : '';
+        
+        html += `
+          <div class="winning-number-entry">
+            <div class="winning-left">
+              <div class="winning-numbers">${numbersText}${extraText ? ' • ' + extraText : ''}</div>
+              <div class="winning-date">${date}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      winningNumbersContent.innerHTML = html;
+    }
+
+    generateBtn.addEventListener('click', () => {
+      const gameKey = gameSelect.value;
+      const count = Math.max(1, Math.min(200, parseInt(countInput.value) || 1));
+      const opts = {
+        preset: presetSelect.value,
+        seed: seedInput.value || null,
+        useWeights: useWeighting.checked,
+        invertWeights: invertWeights.checked,
+        unique: uniquePicks.checked
+      };
+      const picks = generatePicks(gameKey, count, opts);
+      picksList.innerHTML = '';
+      picks.forEach((p, idx) => {
+        const li = document.createElement('li'); li.className = 'pick';
+        const left = document.createElement('div');
+        const g = GAMES[gameKey];
+        const main = (g.order === 'fixed') ? p.numbers.join('') : p.numbers.join(', ');
+        left.innerHTML = `<div class="nums">${main}${p.extra !== null && p.extra !== undefined ? ' • ' + p.extra : ''}</div><div class="meta">Pick ${idx+1}</div>`;
+        const right = document.createElement('div');
+        const saveBtn = document.createElement('button'); saveBtn.textContent='Save'; saveBtn.className='small';
+        saveBtn.addEventListener('click', () => {
+          const rec = { game: gameKey, pick: p, ts: new Date().toISOString() };
+          state.saved.push(rec);
+          persistSaved();
+          renderHistory();
+          lastRun.textContent = 'Pick saved';
+        });
+        right.appendChild(saveBtn);
+        li.appendChild(left); li.appendChild(right);
+        picksList.appendChild(li);
+      });
+      lastRun.textContent = `${count} picks for ${gameKey} generated ${new Date().toLocaleString()}`;
+    });
+
+    refreshBtn.addEventListener('click', async () => {
+      const key = gameSelect.value;
+      const g = GAMES[key];
+      if(!g.socrata || !g.socrata.dataset) {
+        fetchStatus.textContent = `No remote dataset configured for ${key}`;
+        fetchStatus.className = 'muted status-warn';
+        return;
+      }
+      fetchStatus.textContent = `Refreshing ${key}...`;
+      fetchStatus.className = 'muted';
+      await refreshHistoricalDataFor(key, (msg)=>{ fetchStatus.textContent = msg; });
+      
+      // Also refresh the current prize amount
+      updateGameTheme();
+      
+      refreshMeta();
+      renderWinningNumbers();
+      renderFrequencyChart();
+    });
+
+    testAllBtn.addEventListener('click', async () => {
+      fetchStatus.textContent = 'Testing all datasets...';
+      fetchStatus.className = 'muted';
+      
+      const results = [];
+      for (const gameKey of Object.keys(GAMES)) {
+        const g = GAMES[gameKey];
+        if (!g.socrata || !g.socrata.dataset) {
+          results.push(`⚠️ ${gameKey}: No dataset configured`);
+          continue;
+        }
+        
+        try {
+          fetchStatus.textContent = `Testing ${gameKey}...`;
+          const testRows = await fetchSocrataDataset(g.socrata.dataset, 5);
+          results.push(`✅ ${gameKey}: ${testRows.length} rows (ID: ${g.socrata.dataset})`);
+          console.log(`✅ ${gameKey} sample:`, testRows[0]);
+        } catch (err) {
+          results.push(`❌ ${gameKey}: FAILED (ID: ${g.socrata.dataset}) - ${err.message}`);
+          console.error(`❌ ${gameKey} failed:`, err);
+        }
+      }
+      
+      fetchStatus.innerHTML = results.join('<br>');
+      fetchStatus.className = 'muted';
+      console.log('Dataset Test Results:', results);
+      
+      // Also try to find working datasets for failed ones
+      console.log('🔍 To find correct dataset IDs, check: https://data.ny.gov/browse?q=lottery');
+    });
+
+    clearFetchedBtn.addEventListener('click', () => {
+      state.freq = {};
+      state.fetchedRows = {};
+      fetchStatus.textContent = 'Fetched history cleared';
+      fetchStatus.className = 'muted status-warn';
+      refreshMeta();
+      renderWinningNumbers();
+    });
+
+    clearSavedBtn.addEventListener('click', () => {
+      state.saved = [];
+      persistSaved();
+      renderHistory();
+      lastRun.textContent = 'Saved picks cleared';
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (state.saved.length === 0) {
+        lastRun.textContent = 'No history to download';
+        return;
+      }
+      const rows = [['game','numbers','extra','timestamp']];
+      state.saved.forEach(h => {
+        rows.push([
+          h.game,
+          '"' + h.pick.numbers.join(', ') + '"',
+          h.pick.extra !== null && h.pick.extra !== undefined ? h.pick.extra : '',
+          h.ts
+        ]);
+      });
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nys-lottery-history-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      lastRun.textContent = 'History downloaded as CSV';
+    });
+
+    // Event listeners for winning numbers display and frequency chart
+    gameSelect.addEventListener('change', () => {
+      updateGameTheme();
+      refreshMeta();
+      renderWinningNumbers();
+      renderFrequencyChart();
+    });
+
+    // Function to calculate next drawing date
+    function getNextDrawingDate(drawingDays) {
+      const now = new Date();
+      const today = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const gameKey = gameSelect.value;
+      const game = GAMES[gameKey];
+      
+      // Special handling for Quick Draw (every 4 minutes) and daily games
+      if (drawingDays.length === 7) { // Daily games
+        
+        if (gameKey.includes('Quick Draw')) {
+          // Quick Draw: every 4 minutes from 6 AM to 2 AM
+          const nextDraw = new Date(now);
+          
+          if (now.getHours() >= 6 || now.getHours() < 2) { // Drawing hours
+            const minutes = nextDraw.getMinutes();
+            const nextInterval = Math.ceil((minutes + 1) / 4) * 4;
+            
+            if (nextInterval >= 60) {
+              nextDraw.setHours(nextDraw.getHours() + 1);
+              nextDraw.setMinutes(0);
+            } else {
+              nextDraw.setMinutes(nextInterval);
+            }
+            nextDraw.setSeconds(0);
+            
+            return nextDraw.toLocaleString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          } else {
+            // Outside drawing hours, show 6:00 AM today or tomorrow
+            nextDraw.setHours(6, 0, 0, 0);
+            if (now.getHours() >= 2) {
+              nextDraw.setDate(nextDraw.getDate() + 1);
+            }
+            return nextDraw.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric'
+            }) + ' 6:00 AM';
+          }
+        } else if (game.drawingTimes && game.drawingTimes.length > 1) {
+          // Games with multiple daily drawings (Take 5, Pick 10, Numbers, Win 4)
+          const nextDraw = new Date(now);
+          const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
+          
+          // Convert drawing times to minutes for comparison
+          const drawingTimesInMinutes = game.drawingTimes.map(timeStr => {
+            const [time, period] = timeStr.split(' ');
+            const [hours, minutes] = time.split(':').map(Number);
+            let totalMinutes = hours * 60 + minutes;
+            if (period === 'PM' && hours !== 12) totalMinutes += 12 * 60;
+            if (period === 'AM' && hours === 12) totalMinutes = minutes;
+            return totalMinutes;
+          });
+          
+          // Find next drawing time today
+          let nextDrawingTime = null;
+          let nextDrawingTimeStr = null;
+          
+          for (let i = 0; i < drawingTimesInMinutes.length; i++) {
+            if (drawingTimesInMinutes[i] > currentTime) {
+              nextDrawingTime = drawingTimesInMinutes[i];
+              nextDrawingTimeStr = game.drawingTimes[i];
+              break;
+            }
+          }
+          
+          if (nextDrawingTime) {
+            // Next drawing is today
+            return nextDraw.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric'
+            }) + ' ' + nextDrawingTimeStr;
+          } else {
+            // All drawings for today have passed, show first drawing tomorrow
+            nextDraw.setDate(nextDraw.getDate() + 1);
+            return nextDraw.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric'
+            }) + ' ' + game.drawingTimes[0];
+          }
+        } else {
+          // Other daily games with single drawing (like older logic)
+          const nextDraw = new Date(now);
+          if (now.getHours() >= 23) { // After 11 PM, next drawing is tomorrow
+            nextDraw.setDate(nextDraw.getDate() + 1);
+          }
+          return nextDraw.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+          }) + ' 11:21 PM';
+        }
+      }
+      
+      // For other games, find next drawing day
+      let daysUntilNext = 7; // Start with max days
+      
+      for (const drawDay of drawingDays) {
+        let daysAway = (drawDay - today + 7) % 7;
+        if (daysAway === 0) daysAway = 7; // If today is drawing day, next is in 7 days
+        if (daysAway < daysUntilNext) {
+          daysUntilNext = daysAway;
+        }
+      }
+      
+      const nextDrawDate = new Date(now);
+      nextDrawDate.setDate(now.getDate() + daysUntilNext);
+      
+      // Add appropriate time based on game (gameKey already declared above)
+      let timeString = '';
+      if (gameKey === 'Powerball') timeString = ' 10:59 PM';
+      else if (gameKey === 'Mega Millions') timeString = ' 11:00 PM';
+      else if (gameKey === 'Lotto') timeString = ' 11:21 PM';
+      else if (gameKey === 'Cash4Life') timeString = ' 9:00 PM';
+      
+      return nextDrawDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+      }) + timeString;
+    }
+
+    // Function to update the header theme and prize display based on selected game
+    function updateGameTheme() {
+      const gameKey = gameSelect.value;
+      const game = GAMES[gameKey];
+      const header = document.getElementById('main-header');
+      const prizeDisplay = document.getElementById('prize-display');
+      
+      if (!game) return;
+      
+      // Remove all existing game classes
+      header.className = '';
+      
+      // Add the appropriate game class
+      const gameClass = gameKey.toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[()]/g, '')
+        .replace(/3-digit/g, '')
+        .replace(/--/g, '-')
+        .replace(/-$/, '');
+      
+      header.classList.add(`game-${gameClass}`);
+      
+      // Update header title
+      const headerTitle = document.querySelector('.header-left h1');
+      const headerSubtitle = document.querySelector('.header-left .muted');
+      
+      // Add appropriate emoji for each game
+      let gameIcon = '';
+      switch(gameKey) {
+        case 'Powerball': gameIcon = '🔴'; break;
+        case 'Mega Millions': gameIcon = '🥇'; break;
+        case 'Lotto': gameIcon = '🍊'; break;
+        case 'Take 5': gameIcon = '🍀'; break;
+        case 'Pick 10': gameIcon = '🔵'; break;
+        case 'Numbers (3-digit)': gameIcon = '🟣'; break;
+        case 'Win 4': gameIcon = '🟢'; break;
+        case 'Cash4Life': gameIcon = '💚'; break;
+        case 'Quick Draw (1 spot)': gameIcon = '⚡'; break;
+        case 'Quick Draw (5 spots)': gameIcon = '🔥'; break;
+        case 'Quick Draw (10 spots)': gameIcon = '💎'; break;
+        default: gameIcon = '🎲'; break;
+      }
+      headerTitle.textContent = `${gameIcon} ${gameKey}`;
+      
+      // Update subtitle based on game
+      let subtitle = '';
+      switch(gameKey) {
+        case 'Powerball':
+          subtitle = 'Multi-state jackpot lottery • 5 of 69 + Powerball • Drawings Monday, Wednesday, Saturday';
+          break;
+        case 'Mega Millions':
+          subtitle = 'Multi-state jackpot lottery • 5 of 70 + Mega Ball • Drawings Tuesday, Friday';
+          break;
+        case 'Lotto':
+          subtitle = 'New York State lottery • 6 of 59 • Drawings Wednesday, Saturday';
+          break;
+        case 'Take 5':
+          subtitle = 'Daily New York lottery • 5 of 39 • Drawings 2:30 PM & 10:30 PM';
+          break;
+        case 'Pick 10':
+          subtitle = 'Daily New York lottery • 10 of 80 • Drawings 1:30 PM & 11:21 PM';
+          break;
+        case 'Numbers (3-digit)':
+          subtitle = 'Daily New York lottery • 3 digits • Drawings 12:20 PM & 7:30 PM';
+          break;
+        case 'Win 4':
+          subtitle = 'Daily New York lottery • 4 digits • Drawings 12:20 PM & 7:30 PM';
+          break;
+        case 'Cash4Life':
+          subtitle = 'Multi-state lottery • 5 of 60 + Cash Ball • Daily drawings at 9:00 PM';
+          break;
+        case 'Quick Draw (1 spot)':
+          subtitle = 'Quick Draw lottery • 1 spot • Every 4 minutes daily';
+          break;
+        case 'Quick Draw (5 spots)':
+          subtitle = 'Quick Draw lottery • 5 spots • Every 4 minutes daily';
+          break;
+        case 'Quick Draw (10 spots)':
+          subtitle = 'Quick Draw lottery • 10 spots • Every 4 minutes daily';
+          break;
+        default:
+          subtitle = 'Advanced lottery number generator with AI-powered historical analysis';
+      }
+      headerSubtitle.textContent = subtitle;
+      
+      // Update prize display
+      const prizeLabel = prizeDisplay.querySelector('.prize-label');
+      const prizeAmount = prizeDisplay.querySelector('.prize-amount');
+      const prizeStatus = document.getElementById('prize-status');
+      const nextDrawing = document.getElementById('next-drawing');
+      const drawingDate = nextDrawing.querySelector('.drawing-date');
+      
+      prizeLabel.textContent = game.prizeName;
+      
+      // Show loading state while fetching current prize
+      prizeAmount.textContent = 'Fetching...';
+      prizeAmount.style.opacity = '0.7';
+      prizeStatus.style.display = 'block';
+      prizeStatus.textContent = '🔄 Fetching current jackpot...';
+      
+      // Automatically fetch current prize amount
+      fetchCurrentPrizeAmount(gameKey).then(currentPrize => {
+        prizeAmount.textContent = currentPrize;
+        prizeAmount.style.opacity = '1';
+        prizeStatus.style.display = 'none';
+        console.log(`✅ Updated ${gameKey} display with prize: ${currentPrize}`);
+      }).catch(error => {
+        console.error(`❌ Failed to update ${gameKey} prize display:`, error);
+        prizeAmount.textContent = game.estimatedPrize;
+        prizeAmount.style.opacity = '1';
+        prizeStatus.style.display = 'block';
+        prizeStatus.textContent = '⚠️ Using cached amount';
+      });
+      
+      // Fetch current prize amount
+      console.log(`=== STARTING PRIZE FETCH FOR ${gameKey} ===`);
+      fetchCurrentPrizeAmount(gameKey).then(currentPrize => {
+        console.log(`=== PRIZE FETCH COMPLETED FOR ${gameKey}: ${currentPrize} ===`);
+        prizeAmount.textContent = currentPrize;
+        prizeAmount.style.opacity = '1';
+        
+        // Show live indicator if we got real data
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        
+        // Force the display to show our fetched amount
+        if(gameKey === 'Mega Millions' || gameKey === 'Powerball') {
+          prizeStatus.style.display = 'block';
+          prizeStatus.innerHTML = `<span style="color: #28a745;">🔴 LIVE ${timeString}</span>`;
+          console.log(`=== MEGA MILLIONS/POWERBALL LIVE UPDATE: ${currentPrize} ===`);
+        } else if(currentPrize !== game.estimatedPrize) {
+          prizeStatus.style.display = 'block';
+          prizeStatus.innerHTML = `<span style="color: #28a745;">🔴 LIVE ${timeString}</span>`;
+        } else {
+          prizeStatus.style.display = 'block';
+          prizeStatus.innerHTML = `<span style="color: #6c757d;">📊 EST ${timeString}</span>`;
+        }
+      }).catch(err => {
+        console.error('Error fetching current prize:', err);
+        console.log(`=== PRIZE FETCH FAILED FOR ${gameKey}, USING FALLBACK ===`);
+        prizeAmount.textContent = game.estimatedPrize; // fallback
+        prizeAmount.style.opacity = '1';
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        prizeStatus.style.display = 'block';
+        prizeStatus.innerHTML = `<span style="color: #dc3545;">⚠️ ERROR ${timeString}</span>`;
+      });
+      
+      // Update next drawing date
+      if (game.drawingDays && drawingDate) {
+        drawingDate.textContent = getNextDrawingDate(game.drawingDays);
+      }
+      
+      // Update document background with subtle game color
+      document.body.style.background = `linear-gradient(135deg, 
+        ${game.color}08 0%, 
+        ${game.color}04 50%, 
+        var(--bg-secondary) 100%)`;
+    }
+
+    historyLimit.addEventListener('change', () => {
+      renderWinningNumbers();
+      renderFrequencyChart();
+    });
+
+    // Frequency Chart Event Listeners
+    const refreshChartBtn = document.getElementById('refresh-chart');
+    const chartTypeSelect = document.getElementById('chart-type');
+
+    refreshChartBtn.addEventListener('click', () => {
+      renderFrequencyChart();
+    });
+
+    chartTypeSelect.addEventListener('change', () => {
+      renderFrequencyChart();
+    });
+
+    // Frequency Chart Functions
+    function calculateNumberFrequencies(data, maxNumber, gameKey) {
+      console.log('Calculating frequencies for:', gameKey, 'with', data.length, 'draws');
+      const frequencies = {};
+      
+      // For digit games (Numbers, Win 4), include 0-9, otherwise 1-max
+      const minNumber = (gameKey === 'Numbers (3-digit)' || gameKey === 'Win 4') ? 0 : 1;
+      
+      // Initialize all numbers to 0
+      for (let i = minNumber; i <= maxNumber; i++) {
+        frequencies[i] = 0;
+      }
+      
+      // Count frequencies from historical data
+      data.forEach((draw, index) => {
+        const numbers = extractNumbersFromDraw(draw, gameKey);
+        if (index < 3) { // Log first few draws for debugging
+          console.log('Draw', index, ':', draw, 'Extracted numbers:', numbers);
+        }
+        numbers.forEach(num => {
+          if (num >= minNumber && num <= maxNumber) {
+            frequencies[num]++;
+          }
+        });
+      });
+      
+      console.log('Final frequencies:', frequencies);
+      return frequencies;
+    }
+
+    function extractNumbersFromDraw(draw, game) {
+      const numbers = [];
+      
+      switch(game) {
+        case 'Mega Millions':
+          if (draw.mega_ball) numbers.push(parseInt(draw.mega_ball));
+          if (draw.winning_numbers) {
+            draw.winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          break;
+          
+        case 'Powerball':
+          if (draw.powerball) numbers.push(parseInt(draw.powerball));
+          if (draw.winning_numbers) {
+            draw.winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          break;
+          
+        case 'Lotto':
+          if (draw.winning_numbers) {
+            draw.winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          if (draw.bonus) numbers.push(parseInt(draw.bonus));
+          break;
+          
+        case 'Cash4Life':
+          if (draw.winning_numbers) {
+            draw.winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          if (draw.cash_ball) numbers.push(parseInt(draw.cash_ball));
+          break;
+          
+        case 'Take 5':
+          // Handle Take 5 specific format
+          if (draw.take_5_evening_winning_numbers) {
+            draw.take_5_evening_winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          if (draw.take_5_midday_winning_numbers) {
+            draw.take_5_midday_winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          if (draw.winning_numbers) {
+            draw.winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          break;
+          
+        case 'Pick 10':
+          if (draw.winning_numbers) {
+            draw.winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          break;
+          
+        case 'Numbers (3-digit)':
+        case 'Win 4':
+          if (draw.winning_numbers) {
+            const numStr = draw.winning_numbers.replace(/\s/g, '');
+            for (let i = 0; i < numStr.length; i++) {
+              numbers.push(parseInt(numStr[i]));
+            }
+          }
+          break;
+          
+        case 'Quick Draw (1 spot)':
+        case 'Quick Draw (5 spots)':
+        case 'Quick Draw (10 spots)':
+          if (draw.winning_numbers) {
+            draw.winning_numbers.split(' ').forEach(num => {
+              numbers.push(parseInt(num));
+            });
+          }
+          break;
+      }
+      
+      const filtered = numbers.filter(num => !isNaN(num));
+      return filtered;
+    }
+
+    function renderFrequencyChart() {
+      const chartContainer = document.getElementById('frequency-chart-content');
+      const chartType = document.getElementById('chart-type').value;
+      const gameKey = gameSelect.value;
+      const limit = parseInt(historyLimit.value) || 25;
+      
+      if (!state.fetchedRows[gameKey] || state.fetchedRows[gameKey].length === 0) {
+        chartContainer.innerHTML = `
+          <div class="intro-message frequency-intro">
+            <div class="intro-icon">📊</div>
+            <div class="intro-content">
+              <h3>No Data Available for ${gameKey}</h3>
+              <p>Please sync historical data first to view frequency analysis. Click the "Sync Historical Data" button to load winning numbers and generate the frequency chart.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const gameConfig = GAMES[gameKey];
+      const maxNumber = gameConfig.maxNumber || 80;
+      
+      // Use only the selected number of recent draws
+      const recentDraws = state.fetchedRows[gameKey].slice(0, limit);
+      const frequencies = calculateNumberFrequencies(recentDraws, maxNumber, gameKey);
+      
+      // Calculate statistics
+      const values = Object.values(frequencies);
+      const totalDraws = recentDraws.length;
+      const avgFrequency = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+      const maxFreq = Math.max(...values);
+      const minFreq = Math.min(...values);
+      const mostFrequent = Object.keys(frequencies).filter(key => frequencies[key] === maxFreq);
+      const leastFrequent = Object.keys(frequencies).filter(key => frequencies[key] === minFreq);
+
+      let chartHTML = `
+        <div class="chart-container">
+          <div class="chart-title">${gameKey} - Frequency Analysis (Last ${totalDraws} Draws)</div>
+          
+          <div class="chart-stats">
+            <div class="stat-item">
+              <span class="stat-value">${totalDraws}</span>
+              <span class="stat-label">Draws Analyzed</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">${avgFrequency}</span>
+              <span class="stat-label">Avg Frequency</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">${mostFrequent.join(', ')}</span>
+              <span class="stat-label">Most Frequent (${maxFreq})</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">${leastFrequent.join(', ')}</span>
+              <span class="stat-label">Least Frequent (${minFreq})</span>
+            </div>
+          </div>
+      `;
+
+      if (chartType === 'bar') {
+        chartHTML += renderBarChart(frequencies, maxFreq);
+      } else {
+        chartHTML += renderHeatMap(frequencies, maxNumber, maxFreq);
+      }
+
+      chartHTML += '</div>';
+      chartContainer.innerHTML = chartHTML;
+    }
+
+    function renderBarChart(frequencies, maxFreq) {
+      console.log('Rendering bar chart with frequencies:', frequencies, 'maxFreq:', maxFreq);
+      const numberCount = Object.keys(frequencies).length;
+      let html = `<div class="bar-chart" data-numbers="${numberCount}">`;
+      
+      // Sort the numbers properly for display
+      const sortedNumbers = Object.keys(frequencies)
+        .map(n => parseInt(n))
+        .sort((a, b) => a - b);
+      
+      sortedNumbers.forEach(number => {
+        const freq = frequencies[number];
+        const height = maxFreq > 0 ? (freq / maxFreq) * 100 : 0;
+        
+        // Calculate heat map style colors based on frequency
+        let barColor = 'rgba(100, 100, 100, 0.3)'; // Default for freq 0
+        let freqLabelColor = 'rgba(100, 100, 100, 0.8)';
+        
+        if (freq > 0) {
+          const ratio = freq / maxFreq;
+          if (ratio >= 0.8) {
+            barColor = 'rgba(220, 53, 69, 0.9)'; // High frequency - red
+            freqLabelColor = 'rgba(220, 53, 69, 1)';
+          } else if (ratio >= 0.6) {
+            barColor = 'rgba(255, 138, 0, 0.8)'; // Medium-high frequency - orange
+            freqLabelColor = 'rgba(255, 138, 0, 1)';
+          } else if (ratio >= 0.4) {
+            barColor = 'rgba(255, 193, 7, 0.7)'; // Medium frequency - yellow
+            freqLabelColor = 'rgba(255, 193, 7, 1)';
+          } else if (ratio >= 0.25) {
+            barColor = 'rgba(74, 144, 226, 0.7)'; // Medium-low frequency - blue
+            freqLabelColor = 'rgba(74, 144, 226, 1)';
+          } else if (ratio >= 0.1) {
+            barColor = 'rgba(74, 144, 226, 0.5)'; // Low frequency - light blue
+            freqLabelColor = 'rgba(74, 144, 226, 1)';
+          } else {
+            barColor = 'rgba(74, 144, 226, 0.3)'; // Very low frequency - very light blue
+            freqLabelColor = 'rgba(74, 144, 226, 1)';
+          }
+        }
+        
+        if (number <= 5) { // Log first few for debugging
+          console.log(`Number ${number}: freq=${freq}, height=${height}%, color=${barColor}`);
+        }
+        
+        html += `
+          <div class="bar-item">
+            <div class="bar" style="height: ${height}%; background: ${barColor};">
+              <div class="bar-frequency" style="background: ${freqLabelColor}; color: white;">${freq}</div>
+            </div>
+            <div class="bar-number">${number}</div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      return html;
+    }
+
+    function renderHeatMap(frequencies, maxNumber, maxFreq) {
+      let html = `<div class="heatmap numbers-${maxNumber}">`;
+      
+      // Use the same numbers that are in the frequencies object
+      const numbers = Object.keys(frequencies).map(n => parseInt(n)).sort((a, b) => a - b);
+      
+      numbers.forEach(i => {
+        const freq = frequencies[i] || 0;
+        let freqClass = 'frequency-0';
+        
+        if (freq > 0) {
+          const ratio = freq / maxFreq;
+          if (ratio >= 0.8) freqClass = 'frequency-high';
+          else if (ratio >= 0.6) freqClass = 'frequency-5';
+          else if (ratio >= 0.4) freqClass = 'frequency-4';
+          else if (ratio >= 0.25) freqClass = 'frequency-3';
+          else if (ratio >= 0.1) freqClass = 'frequency-2';
+          else freqClass = 'frequency-1';
+        }
+        
+        html += `
+          <div class="heat-cell ${freqClass}">
+            ${i}
+            <div class="frequency-tooltip">Drawn ${freq} times</div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      return html;
+    }
+
+    // About modal functionality
+    const aboutBtn = document.getElementById('about-btn');
+    const aboutModal = document.getElementById('about-modal');
+    const closeAboutBtn = document.getElementById('close-about');
+
+    aboutBtn.addEventListener('click', () => {
+      aboutModal.style.display = 'flex';
+    });
+
+    closeAboutBtn.addEventListener('click', () => {
+      aboutModal.style.display = 'none';
+    });
+
+    // Close modal when clicking outside
+    aboutModal.addEventListener('click', (e) => {
+      if (e.target === aboutModal) {
+        aboutModal.style.display = 'none';
+      }
+    });
+
+    // Global keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Close modal with Escape key
+      if (e.key === 'Escape' && aboutModal.style.display === 'flex') {
+        aboutModal.style.display = 'none';
+      }
+      
+      // Toggle Developer Tools with F12 (fallback if main process doesn't catch it)
+      if (e.key === 'F12') {
+        e.preventDefault(); // Prevent default browser F12 behavior
+        console.log('🎯 F12 key detected in renderer process!');
+        
+        // Check if we're in Electron environment
+        if (typeof require !== 'undefined') {
+          try {
+            const { ipcRenderer } = require('electron');
+            console.log('📡 Sending toggle-dev-tools IPC message from renderer...');
+            ipcRenderer.send('toggle-dev-tools');
+          } catch (error) {
+            console.log('⚠️ Could not toggle dev tools via IPC:', error.message);
+          }
+        } else {
+          console.log('⚠️ F12 dev tools toggle only works in Electron environment');
+        }
+      }
+    });
+
+    // Quit button functionality
+    const quitBtn = document.getElementById('quit-btn');
+    quitBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to quit the application?')) {
+        // In Electron, we can use window.close() or the ipcRenderer to communicate with main process
+        if (window.require) {
+          // We're in Electron
+          const { ipcRenderer } = window.require('electron');
+          ipcRenderer.send('quit-app');
+        } else {
+          // Fallback for browser
+          window.close();
+        }
+      }
+    });
+
+    // Load saved jackpot amounts from localStorage FIRST for instant display
+    const savedMega = localStorage.getItem('megaMillionsJackpot');
+    const savedPowerball = localStorage.getItem('powerballJackpot');
+    const savedLotto = localStorage.getItem('lottoJackpot');
+    
+    if(savedMega) GAMES['Mega Millions'].estimatedPrize = savedMega;
+    if(savedPowerball) GAMES['Powerball'].estimatedPrize = savedPowerball;
+    if(savedLotto) GAMES['Lotto'].estimatedPrize = savedLotto;
+
+    // Initial UI - load instantly with cached data
+    renderHistory();
+    updateGameTheme();
+    refreshMeta();
+    renderWinningNumbers();
+    lastRun.textContent = 'Ready';
+    
+    // DEFER jackpot fetching to prioritize UI loading speed
+    setTimeout(() => {
+      console.log('🚀 Starting deferred jackpot fetching for fresh data...');
+      fetchAllJackpots(true); // Mark as startup fetch
+    }, 100); // Very short delay to let UI render first
+    
+    // Set up periodic jackpot refresh every 10 minutes
+    setInterval(() => {
+      console.log('🔄 Periodic jackpot refresh...');
+      fetchAllJackpots(false);
+    }, 10 * 60 * 1000); // 10 minutes
+    
+    console.log('💰 Fast-loading automatic jackpot system enabled with cached data priority');
+  });
+  </script>
+</body>
+</html>
