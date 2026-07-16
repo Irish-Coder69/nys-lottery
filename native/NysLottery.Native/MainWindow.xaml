@@ -14,12 +14,13 @@
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
             <TextBlock Text="Game:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" />
-            <ComboBox x:Name="GameComboBox" Width="240" Margin="0,0,16,0" DisplayMemberPath="Name" />
+            <ComboBox x:Name="GameComboBox" Width="240" Margin="0,0,16,0" DisplayMemberPath="Name" SelectionChanged="GameComboBox_SelectionChanged" />
 
             <TextBlock Text="Picks:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" />
             <TextBox x:Name="PickCountTextBox" Width="80" Text="5" Margin="0,0,16,0" />
 
             <Button Content="Generate" Width="120" Click="Generate_Click" Margin="0,0,8,0" />
+            <Button Content="Refresh Results" Width="130" Click="RefreshResults_Click" Margin="0,0,8,0" />
             <Button Content="Check Updates" Width="120" Click="CheckUpdates_Click" />
         </StackPanel>
 
@@ -35,13 +36,32 @@
                 <ListBox x:Name="ResultsListBox" />
             </GroupBox>
 
-            <GroupBox Header="History" Grid.Column="1">
-                <TextBox x:Name="HistoryTextBox"
-                         IsReadOnly="True"
-                         VerticalScrollBarVisibility="Auto"
-                         TextWrapping="Wrap"
-                         AcceptsReturn="True" />
-            </GroupBox>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="2*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <GroupBox Header="Current Prize" Margin="0,0,0,12">
+                    <StackPanel Margin="8">
+                        <TextBlock x:Name="PrizeLabelText" FontWeight="Bold" Text="Jackpot" />
+                        <TextBlock x:Name="CurrentPrizeText" FontSize="20" FontWeight="SemiBold" Text="$0" Margin="0,4,0,0" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Past Winning Numbers" Grid.Row="1" Margin="0,0,0,12">
+                    <ListBox x:Name="WinningNumbersListBox" />
+                </GroupBox>
+
+                <GroupBox Header="Generated Pick History" Grid.Row="2">
+                    <TextBox x:Name="HistoryTextBox"
+                             IsReadOnly="True"
+                             VerticalScrollBarVisibility="Auto"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True" />
+                </GroupBox>
+            </Grid>
         </Grid>
     </Grid>
 </Window>
