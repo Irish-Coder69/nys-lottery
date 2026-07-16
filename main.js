@@ -1,8 +1,86 @@
 const path = require('path');
-const { app, BrowserWindow, ipcMain, globalShortcut, dialog } = require('electron');
+const https = require('https');
+const { app, BrowserWindow, ipcMain, globalShortcut, dialog, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 const isDev = !app.isPackaged;
+const VERSION_MANIFEST_URL = 'https://raw.githubusercontent.com/Irish-Coder69/nys-lottery/master/version.json';
+const RELEASES_URL = 'https://github.com/Irish-Coder69/nys-lottery/releases/latest';
+
+function compareVersions(a, b) {
+  const aParts = String(a).split('.').map((n) => Number.parseInt(n, 10) || 0);
+  const bParts = String(b).split('.').map((n) => Number.parseInt(n, 10) || 0);
+  const length = Math.max(aParts.length, bParts.length);
+
+  for (let i = 0; i < length; i += 1) {
+    const aNum = aParts[i] || 0;
+    const bNum = bParts[i] || 0;
+    if (aNum > bNum) return 1;
+    if (aNum < bNum) return -1;
+  }
+
+  return 0;
+}
+
+function fetchJson(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP ${response.statusCode}`));
+          return;
+        }
+
+        let raw = '';
+        response.on('data', (chunk) => {
+          raw += chunk;
+        });
+
+        response.on('end', () => {
+          try {
+            resolve(JSON.parse(raw));
+          } catch (error) {
+            reject(error);
+          }
+        });
+      })
+      .on('error', reject);
+  });
+}
+
+async function checkVersionManifest(mainWindow) {
+  if (isDev) {
+    return;
+  }
+
+  try {
+    const manifest = await fetchJson(VERSION_MANIFEST_URL);
+    const latestVersion = manifest && manifest.version ? manifest.version : null;
+    const currentVersion = app.getVersion();
+
+    if (!latestVersion) {
+      return;
+    }
+
+    if (compareVersions(latestVersion, currentVersion) > 0) {
+      const result = await dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        buttons: ['Open Downloads', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'New Version Available',
+        message: `Version ${latestVersion} is available. You are on ${currentVersion}.`,
+        detail: manifest.notes || 'A new update is available.'
+      });
+
+      if (result.response === 0) {
+        await shell.openExternal(manifest.downloadUrl || RELEASES_URL);
+      }
+    }
+  } catch (error) {
+    console.error('Version manifest check failed:', error && error.message ? error.message : error);
+  }
+}
 
 function configureAutoUpdates(mainWindow) {
   if (isDev) {
@@ -110,6 +188,14 @@ app.whenReady().then(() => {
   const mainWindow = createMainWindow();
   configureAutoUpdates(mainWindow);
 
+  setTimeout(() => {
+    checkVersionManifest(mainWindow);
+  }, 5000);
+
+  setInterval(() => {
+    checkVersionManifest(mainWindow);
+  }, 6 * 60 * 60 * 1000);
+
   // Register global F12 shortcut for dev tools toggle
   globalShortcut.register('F12', () => {
     const isDevToolsOpened = mainWindow.webContents.isDevToolsOpened();
@@ -142,7 +228,10 @@ app.whenReady().then(() => {
     }
 
     try {
-      await autoUpdater.checkForUpdates();
+      await Promise.all([
+        autoUpdater.checkForUpdates(),
+        checkVersionManifest(mainWindow)
+      ]);
       return { ok: true, message: 'Update check started.' };
     } catch (error) {
       return {
