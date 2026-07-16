@@ -101,15 +101,7 @@ function releaseOnGitHub(version, installerPath, branch) {
   const tag = `v${version}`;
 
   if (dryRun) {
-    console.log(`DRY RUN: would create or update release ${tag} with ${installerPath}`);
-    return;
-  }
-
-  const existing = runCapture('gh', ['release', 'view', tag]);
-
-  if (existing.status === 0) {
-    run('gh', ['release', 'upload', tag, installerPath, '--clobber']);
-    console.log(`Updated existing release ${tag}.`);
+    console.log(`DRY RUN: would create new release ${tag} with ${installerPath}`);
     return;
   }
 
@@ -134,7 +126,13 @@ function main() {
 
   run(process.execPath, [bumpScript, level]);
 
-  const version = getVersion();
+  let version = getVersion();
+  while (runCapture('gh', ['release', 'view', `v${version}`]).status === 0) {
+    // Guarantee every execution maps to a brand-new release tag.
+    run(process.execPath, [bumpScript, 'patch']);
+    version = getVersion();
+  }
+
   const branch = getCurrentBranch();
   const installerFileName = `NysLottery-Native-Setup-${version}.exe`;
   const installerPath = path.join('native', 'installer-output', installerFileName);

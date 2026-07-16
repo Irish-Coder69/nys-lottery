@@ -15,10 +15,9 @@ namespace NysLottery.Native;
 
 public partial class MainWindow : Window
 {
-    private const string ManifestUrl = "https://raw.githubusercontent.com/Irish-Coder69/nys-lottery/master/version.json";
+    private const string GitHubLatestReleaseApi = "https://api.github.com/repos/Irish-Coder69/nys-lottery/releases/latest";
     private static readonly HttpClient Http = new();
     private readonly LotteryGeneratorService _generator = new();
-    private readonly VersionManifestService _versionService = new();
 
     private readonly List<GameDefinition> _games =
     [
@@ -41,6 +40,7 @@ public partial class MainWindow : Window
     {
         LoadAboutLogo();
         await RefreshExternalDataAsync();
+        _ = CheckForAndInstallUpdateAsync(showUpToDateMessage: false);
     }
 
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -93,38 +93,60 @@ public partial class MainWindow : Window
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
-        var current = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
+        await CheckForAndInstallUpdateAsync(showUpToDateMessage: true);
+    }
 
-        StatusText.Text = "Checking for updates...";
-        var manifest = await _versionService.GetLatestAsync(ManifestUrl);
-        if (manifest is null)
+    private async Task CheckForAndInstallUpdateAsync(bool showUpToDateMessage)
+    {
+        try
         {
-            StatusText.Text = "Could not reach update server.";
-            return;
-        }
-
-        if (VersionManifestService.IsNewer(manifest.Version, current))
-        {
-            var result = MessageBox.Show(
-                $"Version {manifest.Version} is available. Open download page?",
-                "Update Available",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Information);
-
-            if (result == MessageBoxResult.Yes)
+            StatusText.Text = "Checking for updates...";
+            var release = await GetLatestReleaseAsync();
+            if (release is null || string.IsNullOrWhiteSpace(release.TagName))
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = manifest.DownloadUrl ?? "https://github.com/Irish-Coder69/nys-lottery/releases/latest",
-                    UseShellExecute = true
-                });
+                StatusText.Text = "Could not check updates right now.";
+                return;
             }
 
-            StatusText.Text = $"Update available: {manifest.Version}";
-            return;
-        }
+            var currentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
+            var latestVersion = release.TagName.TrimStart('v', 'V');
 
-        StatusText.Text = "You are up to date.";
+            if (CompareVersionStrings(latestVersion, currentVersion) <= 0)
+            {
+                if (showUpToDateMessage)
+                {
+                    StatusText.Text = "You are up to date.";
+                }
+
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(release.InstallerDownloadUrl))
+            {
+                StatusText.Text = $"Update {latestVersion} found, but installer asset is missing.";
+                return;
+            }
+
+            StatusText.Text = $"Update {latestVersion} found. Downloading installer...";
+            var installerPath = await DownloadInstallerAsync(release.InstallerDownloadUrl, latestVersion);
+            StatusText.Text = "Installing update...";
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = installerPath,
+                Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
+                UseShellExecute = true,
+                Verb = "runas"
+            };
+
+            Process.Start(startInfo);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Update failed. Please try again.";
+            Console.WriteLine(ex.Message);
+        }
     }
 
     private async void RefreshResults_Click(object sender, RoutedEventArgs e)
@@ -319,5 +341,94 @@ public partial class MainWindow : Window
         image.CacheOption = BitmapCacheOption.OnLoad;
         image.EndInit();
         AboutLogoImage.Source = image;
+    }
+
+    private static int CompareVersionStrings(string a, string b)
+    {
+        var aParts = a.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+        var bParts = b.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+        var length = Math.Max(aParts.Length, bParts.Length);
+
+        for (var i = 0; i < length; i++)
+        {
+            var av = i < aParts.Length ? aParts[i] : 0;
+            var bv = i < bParts.Length ? bParts[i] : 0;
+            if (av > bv)
+            {
+                return 1;
+            }
+
+            if (av < bv)
+            {
+                return -1;
+            }
+        }
+
+        return 0;
+    }
+
+    private static async Task<string> DownloadInstallerAsync(string url, string version)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", "NysLotteryNativeUpdater");
+
+        using var response = await Http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var tempFile = Path.Combine(Path.GetTempPath(), $"NysLottery-Native-Setup-{version}.exe");
+        await using var fs = File.Create(tempFile);
+        await response.Content.CopyToAsync(fs);
+        return tempFile;
+    }
+
+    private static async Task<GitHubReleaseInfo?> GetLatestReleaseAsync()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, GitHubLatestReleaseApi);
+        request.Headers.Add("User-Agent", "NysLotteryNativeUpdater");
+
+        using var response = await Http.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var tagName = root.TryGetProperty("tag_name", out var tagProperty)
+            ? tagProperty.GetString()
+            : null;
+
+        var installerUrl = string.Empty;
+        if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var asset in assets.EnumerateArray())
+            {
+                var name = asset.TryGetProperty("name", out var assetName) ? assetName.GetString() : null;
+                var downloadUrl = asset.TryGetProperty("browser_download_url", out var browserUrl) ? browserUrl.GetString() : null;
+
+                if (!string.IsNullOrWhiteSpace(name) &&
+                    name.Contains("NysLottery-Native-Setup-", StringComparison.OrdinalIgnoreCase) &&
+                    name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(downloadUrl))
+                {
+                    installerUrl = downloadUrl;
+                    break;
+                }
+            }
+        }
+
+        return new GitHubReleaseInfo
+        {
+            TagName = tagName,
+            InstallerDownloadUrl = installerUrl
+        };
+    }
+
+    private sealed class GitHubReleaseInfo
+    {
+        public string? TagName { get; init; }
+        public string? InstallerDownloadUrl { get; init; }
     }
 }
