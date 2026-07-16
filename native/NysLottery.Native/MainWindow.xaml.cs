@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
@@ -6,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using NysLottery.Native.Models;
 using NysLottery.Native.Services;
 
@@ -37,7 +39,18 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        LoadAboutLogo();
         await RefreshExternalDataAsync();
+    }
+
+    private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        MainTabControl.SelectedItem = AboutTabItem;
     }
 
     private void Generate_Click(object sender, RoutedEventArgs e)
@@ -283,5 +296,28 @@ public partial class MainWindow : Window
         }
 
         return "$" + match.Groups[1].Value.Trim();
+    }
+
+    private void LoadAboutLogo()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "New_York_Lottery.svg.ico"),
+            Path.Combine(AppContext.BaseDirectory, "Icon", "New_York_Lottery.svg.ico"),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Icon", "New_York_Lottery.svg.ico"))
+        };
+
+        var logoPath = candidates.FirstOrDefault(File.Exists);
+        if (string.IsNullOrWhiteSpace(logoPath))
+        {
+            return;
+        }
+
+        var image = new BitmapImage();
+        image.BeginInit();
+        image.UriSource = new Uri(logoPath, UriKind.Absolute);
+        image.CacheOption = BitmapCacheOption.OnLoad;
+        image.EndInit();
+        AboutLogoImage.Source = image;
     }
 }
