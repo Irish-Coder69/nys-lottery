@@ -25,6 +25,7 @@ public partial class MainWindow : Window
         new() { Name = "Powerball", PickCount = 5, MaxNumber = 69, DatasetId = "d6yy-54nr", PrizeName = "Jackpot", EstimatedPrize = "$478 Million", HasBonusBall = true, BonusBallMax = 26 },
         new() { Name = "Mega Millions", PickCount = 5, MaxNumber = 70, DatasetId = "5xaw-6ayf", PrizeName = "Jackpot", EstimatedPrize = "$843 Million", HasBonusBall = true, BonusBallMax = 25 },
         new() { Name = "Millionaire For Life", PickCount = 5, MaxNumber = 60, DatasetId = "a4w9-a3tp", PrizeName = "Top Prize", EstimatedPrize = "$1,000 a Day for Life", HasBonusBall = true, BonusBallMax = 5, WinningFields = ["winning_numbers"] },
+        new() { Name = "Cash 4 Life (Closed)", PickCount = 5, MaxNumber = 60, DatasetId = "kwxv-fwze", PrizeName = "Status", EstimatedPrize = "Game Closed", HasBonusBall = true, BonusBallMax = 4, WinningFields = ["winning_numbers"] },
         new() { Name = "Lotto", PickCount = 6, MaxNumber = 59, DatasetId = "6nbc-h7bj", PrizeName = "Jackpot", EstimatedPrize = "$8.2 Million" },
         new() { Name = "Take 5", PickCount = 5, MaxNumber = 39, DatasetId = "dg63-4siq", PrizeName = "Top Prize", EstimatedPrize = "$57,575" },
         new() { Name = "Pick 10", PickCount = 10, MaxNumber = 80, DatasetId = "bycu-cw7c", PrizeName = "Top Prize", EstimatedPrize = "$500,000" },

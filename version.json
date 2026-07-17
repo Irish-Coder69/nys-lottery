@@ -1,6 +1,6 @@
 {
-  "version": "1.0.9",
-  "releaseDate": "2026-07-16",
+  "version": "1.0.10",
+  "releaseDate": "2026-07-17",
   "notes": "Installer release with version manifest and GitHub update checks.",
   "downloadUrl": "https://github.com/Irish-Coder69/nys-lottery/releases/latest",
   "minimumSupportedVersion": "1.0.0"
