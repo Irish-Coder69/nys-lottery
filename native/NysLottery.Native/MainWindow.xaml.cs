@@ -44,7 +44,6 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        LoadBrandingLogo();
         AboutMenuItem.Header = $"About (v{GetCurrentVersion()})";
         await RefreshExternalDataAsync();
         _ = CheckForAndInstallUpdateAsync(showUpToDateMessage: false);
@@ -450,32 +449,13 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private void LoadBrandingLogo()
-    {
-        var logoPath = FindBrandingLogoPath();
-        if (string.IsNullOrWhiteSpace(logoPath))
-        {
-            return;
-        }
-
-        var image = new BitmapImage();
-        image.BeginInit();
-        image.UriSource = new Uri(logoPath, UriKind.Absolute);
-        image.CacheOption = BitmapCacheOption.OnLoad;
-        image.EndInit();
-        BrandingLogoImage.Source = image;
-    }
-
     private static string? FindBrandingLogoPath()
     {
         var candidates = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming.png"),
             Path.Combine(AppContext.BaseDirectory, "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png"),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png")),
-            Path.Combine(AppContext.BaseDirectory, "New_York_Lottery.svg.ico"),
-            Path.Combine(AppContext.BaseDirectory, "Icon", "New_York_Lottery.svg.ico"),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Icon", "New_York_Lottery.svg.ico"))
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Irish_Coders_Programming Logo", "Irish_Coders_Programming.png"))
         };
 
         return candidates.FirstOrDefault(File.Exists);

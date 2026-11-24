@@ -67,7 +67,8 @@
                         <TextBlock Text="NEW YORK" Foreground="#E6B94F" FontSize="12" FontWeight="Bold" />
                         <TextBlock Text="Lottery Picker" Foreground="White" FontSize="28" FontWeight="Bold" />
                     </StackPanel>
-                    <Image x:Name="BrandingLogoImage" Grid.Column="1" Width="58" Height="58" Margin="16,0,0,0" />
+                          <Image Grid.Column="1" Width="58" Height="58" Margin="16,0,0,0"
+                              Source="/NysLottery.Native;component/Assets/New_York_Lottery.ico" />
                 </Grid>
             </Border>
 
