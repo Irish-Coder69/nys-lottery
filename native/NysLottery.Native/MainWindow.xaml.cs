@@ -331,15 +331,49 @@ public partial class MainWindow : Window
 
     private async Task LoadCurrentPrizeAsync(GameDefinition game)
     {
+        var gameKey = game.Name switch
+        {
+            "Powerball" => "powerball",
+            "Mega Millions" => "megamillions",
+            "Lotto" => "lotto",
+            _ => null
+        };
+
+        if (gameKey is null)
+        {
+            CurrentPrizeText.Text = game.EstimatedPrize;
+            return;
+        }
+
+        var prize = "Jackpot unavailable";
         try
         {
-            var html = await Http.GetStringAsync("https://nylottery.ny.gov/");
-            var prize = TryExtractPrize(game.Name, html) ?? game.EstimatedPrize;
-            CurrentPrizeText.Text = prize;
+            using var response = await Http.GetAsync("https://nylottery.ny.gov/nyl-api/games/all/draws");
+            response.EnsureSuccessStatusCode();
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            using var doc = await JsonDocument.ParseAsync(stream);
+            if (doc.RootElement.TryGetProperty("data", out var data) &&
+                data.TryGetProperty(gameKey, out var gameData) &&
+                gameData.TryGetProperty("draws", out var draws) && draws.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var draw in draws.EnumerateArray())
+                {
+                    if (draw.TryGetProperty("wagerAvailable", out var available) && available.ValueKind == JsonValueKind.True &&
+                        draw.TryGetProperty("estimatedJackpot", out var jackpot) && jackpot.TryGetInt64(out var amount) && amount > 0)
+                    {
+                        prize = $"{amount.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-US"))} (estimated)";
+                        break;
+                    }
+                }
+            }
         }
         catch
         {
-            CurrentPrizeText.Text = $"{game.EstimatedPrize} (est.)";
+        }
+
+        if (ReferenceEquals(GameComboBox.SelectedItem, game))
+        {
+            CurrentPrizeText.Text = prize;
         }
     }
 
@@ -414,36 +448,6 @@ public partial class MainWindow : Window
         }
 
         return null;
-    }
-
-    private static string? TryExtractPrize(string gameName, string html)
-    {
-        string pattern;
-
-        if (gameName == "Mega Millions")
-        {
-            pattern = "mega millions[^$]{0,160}\\$\\s*([0-9.,]+(?:\\s*(?:million|billion))?)";
-        }
-        else if (gameName == "Powerball")
-        {
-            pattern = "powerball[^$]{0,160}\\$\\s*([0-9.,]+(?:\\s*(?:million|billion))?)";
-        }
-        else if (gameName == "Lotto")
-        {
-            pattern = "(?:new york lotto|lotto)[^$]{0,160}\\$\\s*([0-9.,]+(?:\\s*(?:million|billion))?)";
-        }
-        else
-        {
-            return null;
-        }
-
-        var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        return "$" + match.Groups[1].Value.Trim();
     }
 
     private void LoadBrandingLogo()
