@@ -18,6 +18,9 @@ public partial class MainWindow : Window
 {
     private const string GitHubLatestReleaseApi = "https://api.github.com/repos/Irish-Coder69/nys-lottery/releases/latest";
     private static readonly HttpClient Http = new();
+    private static readonly string PickHistoryPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "NysLottery", "pick-history.txt");
     private readonly LotteryGeneratorService _generator = new();
 
     private readonly List<GameDefinition> _games =
@@ -39,6 +42,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         GameComboBox.ItemsSource = _games;
         GameComboBox.SelectedIndex = 0;
+        LoadPickHistory();
         Loaded += MainWindow_Loaded;
     }
 
@@ -182,13 +186,57 @@ public partial class MainWindow : Window
             history.AppendLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {game.Name} | {line}");
         }
 
-        if (HistoryTextBox.Text.Length > 0)
-        {
-            HistoryTextBox.AppendText(Environment.NewLine);
-        }
+        var historyText = history.ToString();
+        HistoryTextBox.AppendText(historyText);
+        HistoryTextBox.ScrollToEnd();
 
-        HistoryTextBox.AppendText(history.ToString());
-        StatusText.Text = $"Generated {totalPicks} picks for {game.Name}.";
+        try
+        {
+            SavePickHistory(PickHistoryPath, historyText);
+            StatusText.Text = $"Generated {totalPicks} picks for {game.Name}.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            StatusText.Text = "Picks generated, but history could not be saved.";
+            MessageBox.Show(this, $"Your picks are shown, but could not be saved to history.\n\n{ex.Message}",
+                "History Not Saved", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void LoadPickHistory()
+    {
+        try
+        {
+            HistoryTextBox.Text = ReadPickHistory(PickHistoryPath);
+            HistoryTextBox.ScrollToEnd();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            MessageBox.Show(this, $"Pick history could not be loaded.\n\n{ex.Message}",
+                "History Not Loaded", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private static void SavePickHistory(string path, string historyText)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.AppendAllText(path, historyText);
+    }
+
+    private static string ReadPickHistory(string path)
+    {
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch (FileNotFoundException)
+        {
+            return string.Empty;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return string.Empty;
+        }
     }
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
